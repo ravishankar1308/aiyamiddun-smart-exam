@@ -28,7 +28,7 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
                 setLoading(true);
                 const [examData, meta, questions] = await Promise.all([
                     apiGetExam(examId),
-                    apiGetMetadata(), 
+                    apiGetMetadata('subjects'), 
                     apiGetQuestions()
                 ]);
                 

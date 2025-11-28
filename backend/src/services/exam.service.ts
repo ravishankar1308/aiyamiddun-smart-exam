@@ -24,10 +24,9 @@ export const getAllExams = async (filters: any) => {
 export const createExam = async (examData: any) => {
     const {
         title,
-        description, // Added description
-        subject_id,      // Changed from subject
-        duration_minutes,// Changed from duration
-        question_ids,    // Changed from questionsSnapshot
+        subject_id,
+        duration_minutes,
+        question_ids,
         classLevel,
         difficulty,
         scheduledStart,
@@ -37,8 +36,8 @@ export const createExam = async (examData: any) => {
     } = examData;
 
     // 1. Validate required fields
-    if (!title || !question_ids || !Array.isArray(question_ids) || question_ids.length === 0) {
-        throw new Error('Title and a non-empty array of question_ids are required.');
+    if (!title || !subject_id || !question_ids || !Array.isArray(question_ids) || question_ids.length === 0) {
+        throw new Error('Title, subject_id, and a non-empty array of question_ids are required.');
     }
 
     // 2. Fetch full question objects based on question_ids
@@ -54,21 +53,20 @@ export const createExam = async (examData: any) => {
 
     // 4. Prepare the data for insertion
     const query = `
-        INSERT INTO exams (title, description, subject, duration, questionsSnapshot, classLevel, difficulty, scheduledStart, scheduledEnd, isQuiz, createdBy)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO exams (title, subject, duration, questionsSnapshot, classLevel, difficulty, scheduledStart, scheduledEnd, isQuiz, createdBy)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const params = [
         title,
-        description,
-        subject_id,      // Use subject_id for the 'subject' column
-        duration_minutes,// Use duration_minutes for the 'duration' column
+        BigInt(subject_id), // Ensure subject_id is a BigInt
+        duration_minutes ?? null,
         questionsSnapshot,
         classLevel ?? null,
-        difficulty ?? null,
+        difficulty || null,
         scheduledStart ?? null,
         scheduledEnd ?? null,
-        isQuiz ?? true,
+        isQuiz ?? false,
         createdBy ?? null
     ];
 
