@@ -29,6 +29,7 @@ const navLinks = {
         { name: 'Exams', href: '/dashboard/exams', icon: Edit },
         { name: 'Results', href: '/dashboard/results', icon: BarChart2 },
         { name: 'AI Generator', href: '/dashboard/generator', icon: BrainCircuit },
+        { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ],
     student: [
         { name: 'Take Exam', href: '/dashboard/take-exam', icon: Edit },
