@@ -11,6 +11,20 @@ export const getAllExams = async (req: Request, res: Response) => {
     }
 };
 
+export const getExamById = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const exam = await examService.getExamById(id);
+        res.json(exam);
+    } catch (error) {
+        console.error(`Error fetching exam ${id}:`, error);
+        if ((error as any).message === 'Exam not found') {
+            return res.status(404).json({ error: (error as any).message });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 export const createExam = async (req: Request, res: Response) => {
     try {
         const newExam = await examService.createExam(req.body);
@@ -18,6 +32,20 @@ export const createExam = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error creating exam:', error);
         res.status(500).json({ error: 'Failed to create exam.' });
+    }
+};
+
+export const updateExam = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const updatedExam = await examService.updateExam(id, req.body);
+        res.json(updatedExam);
+    } catch (error) {
+        console.error(`Error updating exam ${id}:`, error);
+        if ((error as any).message.includes('not found')) {
+            return res.status(404).json({ error: (error as any).message });
+        }
+        res.status(500).json({ error: 'Failed to update exam.' });
     }
 };
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGetExam, apiUpdateExam, apiGetMetadata, apiGetQuestions } from '@/lib/api';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
@@ -22,37 +22,37 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
     const router = useRouter();
     const examId = params.id;
 
-    useEffect(() => {
-        const fetchExamData = async () => {
-            try {
-                setLoading(true);
-                const [examData, meta, questions] = await Promise.all([
-                    apiGetExam(examId),
-                    apiGetMetadata('subjects'), 
-                    apiGetQuestions()
-                ]);
-                
-                setExamDetails({
-                    title: examData.title,
-                    description: examData.description,
-                    subject_id: examData.subject_id,
-                    duration_minutes: examData.duration_minutes,
-                });
-                setSelectedQuestions(examData.questions.map(q => q.id));
-                setMetadata(meta);
-                setAvailableQuestions(questions);
+    const fetchExamData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const [examData, meta, questions] = await Promise.all([
+                apiGetExam(examId),
+                apiGetMetadata('subjects'), 
+                apiGetQuestions()
+            ]);
+            
+            setExamDetails({
+                title: examData.title,
+                description: examData.description,
+                subject_id: examData.subject_id,
+                duration_minutes: examData.duration_minutes,
+            });
+            setSelectedQuestions(examData.questions.map((q: any) => q.id));
+            setMetadata(meta);
+            setAvailableQuestions(questions);
 
-            } catch (err: any) {
-                setError(err.message || 'Failed to load exam data.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        
+        } catch (err: any) {
+            setError(err.message || 'Failed to load exam data.');
+        } finally {
+            setLoading(false);
+        }
+    }, [examId]);
+
+    useEffect(() => {
         if (examId) {
             fetchExamData();
         }
-    }, [examId]);
+    }, [examId, fetchExamData]);
 
     const handleDetailChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setExamDetails({ ...examDetails, [e.target.name]: e.target.value });
@@ -136,7 +136,7 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
                             <label className="block font-bold mb-2">Subject</label>
                             <select name="subject_id" value={examDetails.subject_id} onChange={handleDetailChange} className="w-full p-2 border rounded-md">
                                 <option value="">Select a Subject</option>
-                                {metadata.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                {metadata.subjects.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
                          <div>
@@ -160,7 +160,7 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
                         {/* Add filter controls here */}
                     </div>
                     <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-3">
-                        {availableQuestions.map(q => (
+                        {availableQuestions.map((q: any) => (
                             <div key={q.id} className="flex items-center bg-gray-50 p-3 rounded-md">
                                 <input type="checkbox" checked={selectedQuestions.includes(q.id)} onChange={() => handleQuestionToggle(q.id)} className="h-5 w-5 mr-4"/>
                                 <div>
