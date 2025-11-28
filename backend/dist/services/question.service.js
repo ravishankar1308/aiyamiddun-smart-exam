@@ -88,21 +88,33 @@ var getAllQuestions = function (filters) { return __awaiter(void 0, void 0, void
 exports.getAllQuestions = getAllQuestions;
 var createQuestion = function (q) { return __awaiter(void 0, void 0, void 0, function () {
     var query, result;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var _a, _b, _c, _d, _e, _f;
+    return __generator(this, function (_g) {
+        switch (_g.label) {
             case 0:
                 if (!q.text || !q.classLevel || !q.subject || !q.section) {
                     throw new Error('Required question fields are missing.');
                 }
-                query = "\n        INSERT INTO questions \n        (text, category, difficulty, answer, answerDetail, imageUrl, options, status, subject, classLevel, section, marks, authorUsername, authorRole)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n    ";
+                query = "\n        INSERT INTO questions \n        (text, category, difficulty, answer, answerDetail, imageUrl, options, status, subject, classLevel, section, marks, authorUsername, authorRole, disabled)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n    ";
                 return [4 /*yield*/, index_1.connection.execute(query, [
-                        q.text, q.category, q.difficulty, q.answer,
-                        q.answerDetail, q.imageUrl, JSON.stringify(q.options),
-                        q.status || 'pending', q.subject, q.classLevel, q.section, q.marks,
-                        q.authorUsername, q.authorRole
+                        q.text,
+                        q.category,
+                        q.difficulty,
+                        q.answer,
+                        (_a = q.answerDetail) !== null && _a !== void 0 ? _a : null,
+                        (_b = q.imageUrl) !== null && _b !== void 0 ? _b : null,
+                        JSON.stringify(q.options),
+                        q.status || 'pending',
+                        q.subject,
+                        q.classLevel,
+                        q.section,
+                        (_c = q.marks) !== null && _c !== void 0 ? _c : null,
+                        (_d = q.authorUsername) !== null && _d !== void 0 ? _d : null,
+                        (_e = q.authorRole) !== null && _e !== void 0 ? _e : null,
+                        (_f = q.disabled) !== null && _f !== void 0 ? _f : false
                     ])];
             case 1:
-                result = (_a.sent())[0];
+                result = (_g.sent())[0];
                 return [2 /*return*/, __assign({ id: result.insertId }, q)];
         }
     });

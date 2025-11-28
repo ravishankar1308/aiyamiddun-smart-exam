@@ -29,15 +29,26 @@ export const createQuestion = async (q: any) => {
 
     const query = `
         INSERT INTO questions 
-        (text, category, difficulty, answer, answerDetail, imageUrl, options, status, subject, classLevel, section, marks, authorUsername, authorRole)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (text, category, difficulty, answer, answerDetail, imageUrl, options, status, subject, classLevel, section, marks, authorUsername, authorRole, disabled)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const [result]: any = await connection.execute(query, [
-        q.text, q.category, q.difficulty, q.answer,
-        q.answerDetail, q.imageUrl, JSON.stringify(q.options),
-        q.status || 'pending', q.subject, q.classLevel, q.section, q.marks,
-        q.authorUsername, q.authorRole
+        q.text,
+        q.category,
+        q.difficulty,
+        q.answer,
+        q.answerDetail ?? null,
+        q.imageUrl ?? null,
+        JSON.stringify(q.options),
+        q.status || 'pending',
+        q.subject,
+        q.classLevel,
+        q.section,
+        q.marks ?? null,
+        q.authorUsername ?? null,
+        q.authorRole ?? null,
+        q.disabled ?? false
     ]);
     
     return { id: result.insertId, ...q };
