@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, List, Filter, Plus, Edit2, Eye, EyeOff, X, Check } from 'lucide-react';
 import { apiGetMetadata, apiUpdateMetadata } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 
 // --- Helper Components for Settings ---
 const ListItem = ({ item, onEdit, onToggle, onDelete, extraInfo }) => {
@@ -43,6 +44,7 @@ const SectionMetadataEditor = ({ grades, subjects = [], sections = [], onAdd, on
 
 
 export default function SettingsPage() {
+  const { token } = useAuth(); // Use the auth hook to get the token
   const [metadata, setMetadata] = useState({
     grades: [],
     subjects: [],
@@ -53,13 +55,19 @@ export default function SettingsPage() {
   const [error, setError] = useState(null);
 
   const fetchMetadata = async () => {
+    if (!token) {
+      setError('Authentication token not found.');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const [grades, subjects, sections, questionTypes] = await Promise.all([
-        apiGetMetadata('grades'),
-        apiGetMetadata('subjects'),
-        apiGetMetadata('sections'),
-        apiGetMetadata('questionTypes'),
+        apiGetMetadata('grades', token),
+        apiGetMetadata('subjects', token),
+        apiGetMetadata('sections', token),
+        apiGetMetadata('questionTypes', token),
       ]);
       setMetadata({ grades, subjects, sections, questionTypes });
     } catch (err: any) {
@@ -71,9 +79,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchMetadata();
-  }, []);
+  }, [token]);
 
   const handleUpdateMetadata = async (collectionName, action, data, itemId = null) => {
+    if (!token) {
+      setError('Authentication token not found.');
+      return;
+    }
+
     try {
         let currentList = [...(metadata[collectionName] || [])];
 
@@ -88,7 +101,7 @@ export default function SettingsPage() {
             currentList = currentList.map(item => item.id === itemId ? { ...item, active: !item.active } : item);
         }
 
-        await apiUpdateMetadata(collectionName, currentList);
+        await apiUpdateMetadata(collectionName, currentList, token);
         // Refresh local state
         fetchMetadata();
 

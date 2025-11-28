@@ -146,8 +146,8 @@ export const apiSubmitExam = (id: string | number, submissionData: ExamSubmissio
 export const apiGetExamAnalytics = (id: string | number) => fetchApi<ExamAnalytics>(`/exams/${id}/analytics`);
 
 // --- METADATA APIS ---
-export const apiGetMetadata = <T>(key: string) => fetchApi<Metadata<T>>(`/metadata/${key}`);
-export const apiUpdateMetadata = <T>(key: string, value: T) => fetchApi<Metadata<T>>(`/metadata/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
+export const apiGetMetadata = <T>(key: string, token: string) => fetchApi<Metadata<T>>(`/metadata/${key}`, { headers: { 'Authorization': `Bearer ${token}` } });
+export const apiUpdateMetadata = <T>(key: string, value: T, token: string) => fetchApi<Metadata<T>>(`/metadata/${key}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ value }) });
 
 // --- AI APIS ---
 export const apiGenerateQuestions = (topic: string, difficulty: QuestionDifficulty, count: number) => 
