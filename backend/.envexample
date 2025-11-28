@@ -1,5 +1,6 @@
-GEMINI_API_KEY=""
-DB_HOST=
-DB_USER=aiyamiddunexam
-DB_PASSWORD=DstZPcrrTPj2hk8J
-DB_NAME=aiyamiddunexam
+DB_HOST=sql12.freesqldatabase.com
+DB_USER=sql12809787
+DB_PASSWORD=Ti3ReRTR3z
+DB_NAME=sql12809787
+GEMINI_API_KEY=
+JWT_SECRET=ravishankarisgoodboywithgoodgiante
