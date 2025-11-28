@@ -4,13 +4,15 @@ import * as authService from '../services/auth.service';
 
 /**
  * Handles the user login request.
- * Expects 'email' and 'password' in the request body.
+ * Expects 'email' (or 'username') and 'password' in the request body.
  */
 export const login = async (req: Request, res: Response) => {
-    const { email, password } = req.body;
+    // Allow login with either 'email' or 'username' for flexibility
+    const { email: bodyEmail, username, password } = req.body;
+    const email = bodyEmail || username;
 
     if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required.' });
+        return res.status(400).json({ error: 'Email (or username) and password are required.' });
     }
 
     try {
