@@ -18,10 +18,9 @@ export const getMetadata = async (req: Request, res: Response) => {
     }
 
     try {
-        // The service function now correctly returns just the value (e.g., the array)
         const metadataValue = await metadataService.getMetadata(key);
-        // The frontend expects the value to be sent directly, not wrapped in an object.
-        res.json(metadataValue);
+        // The frontend API client expects the data to be wrapped in a 'value' property.
+        res.json({ value: metadataValue });
     } catch (error) {
         console.error(`Error fetching metadata for key '${key}':`, error);
         res.status(500).json({ error: 'Internal server error' });
@@ -41,7 +40,8 @@ export const updateMetadata = async (req: Request, res: Response) => {
 
     try {
         const updatedMetadata = await metadataService.updateMetadata(key, value);
-        res.json(updatedMetadata);
+        // The frontend API client also expects the updated data to be wrapped in a 'value' property.
+        res.json({ value: updatedMetadata.value });
     } catch (error) {
         console.error(`Error updating metadata for key '${key}':`, error);
         res.status(500).json({ error: 'Internal server error' });
