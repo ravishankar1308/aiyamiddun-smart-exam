@@ -1,65 +1,43 @@
 
-import * as jwt from 'jsonwebtoken';
-import { connection } from '../index'; // Use the exported connection from index.ts
-import { RowDataPacket } from 'mysql2';
+import { findUserByUsername } from './user.service';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-// This should be in an environment variable in a real application!
-const JWT_SECRET = 'your-super-secret-and-long-key-that-is-at-least-32-characters';
-const JWT_EXPIRES_IN = '1h'; // Token expiration time
-
-// Define a type for our user data from the database
-interface User extends RowDataPacket {
-    id: number;
-    username: string;
-    password: string; // This is insecure!
-    role: string;
-}
+// Use a secure, environment-variable-driven secret for JWT
+const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret'; // Default for safety, but should be set in .env
 
 /**
- * Validates user credentials and generates a JWT if they are correct.
+ * Authenticates a user and returns a JWT if successful.
  * @param username - The user's username.
- * @param password - The user's plain text password.
- * @returns An object with the token and expiration if successful, otherwise null.
+ * @param password - The user's plain-text password.
+ * @returns A promise that resolves to an object with a token and user details, or null if authentication fails.
  */
 export const login = async (username: string, password: string) => {
-    try {
-        // 1. Find the user by username using the correct 'mysql2' placeholder (?)
-        const [userRows] = await connection.query<User[]>(
-            'SELECT * FROM users WHERE username = ?',
-            [username]
-        );
+    const user = await findUserByUsername(username);
 
-        if (userRows.length === 0) {
-            console.log(`Login attempt failed: No user found for username ${username}`);
-            return null; // User not found
-        }
-
-        const user = userRows[0];
-
-        // 2. Check the password (insecure plain text comparison)
-        if (user.password !== password) {
-            console.log(`Login attempt failed: Incorrect password for username ${username}`);
-            return null; // Passwords do not match
-        }
-
-        // 3. If password is correct, create the JWT payload
-        const payload = {
-            id: user.id,
-            role: user.role,
-        };
-
-        // 4. Sign the JWT
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-
-        console.log(`User ${username} logged in successfully.`);
-
-        // 5. Return the token and expiration information
-        return {
-            token,
-            expiresIn: JWT_EXPIRES_IN,
-        };
-    } catch (error) {
-        console.error('Error during login service execution:', error);
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+        // Invalid username or password
         return null;
     }
+
+    // Ensure the role is included in the payload
+    const payload = {
+        id: user.id,
+        username: user.username,
+        role: user.role, // Explicitly include the user's role
+    };
+
+    // Generate a token with the user payload
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+
+    // Return the token and user details (excluding the password)
+    return {
+        token,
+        user: {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            role: user.role, // Make sure the role is in the response
+        },
+    };
 };
