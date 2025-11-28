@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiGetResults, Result } from '../../../lib/api';
-import { useAuth } from '../../../lib/auth';
+import { apiGetResults, Result } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ResultsPage() {
   const { user, token } = useAuth();
