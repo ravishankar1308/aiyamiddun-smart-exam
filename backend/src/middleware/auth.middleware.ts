@@ -1,56 +1,62 @@
 
 import { Request, Response, NextFunction } from 'express';
-import { auth } from '../config/firebase';
+import * as jwt from 'jsonwebtoken';
 
-// Extend the Express Request type to include a user object
+// In a real application, this secret should be stored securely in an environment variable
+const JWT_SECRET = 'your-super-secret-and-long-key-that-is-at-least-32-characters';
+
+// We need to extend the default Express Request type to include our 'user' payload
 export interface AuthenticatedRequest extends Request {
     user?: {
-        uid: string;
-        email?: string;
-        role?: string;
+        id: number;
+        role: string;
     };
 }
 
-// 1. Authentication Middleware (authMiddleware)
-// Verifies the Firebase ID token sent from the client.
-export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const idToken = req.headers.authorization?.split('Bearer ')[1];
+/**
+ * Verifies the JSON Web Token (JWT) from the Authorization header.
+ * If valid, it attaches the user payload to the request object.
+ */
+export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
 
-    if (!idToken) {
-        return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: No token provided or malformed header.' });
     }
 
+    const token = authHeader.split(' ')[1];
+
     try {
-        const decodedToken = await auth.verifyIdToken(idToken);
-        // The decoded token contains standard claims like uid, email, etc.
-        // We will fetch the custom role claim we set during user creation.
-        const userRecord = await auth.getUser(decodedToken.uid);
-        const customClaims = userRecord.customClaims || {};
+        // Verify the token using the secret key
+        const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: string; };
 
-        // Attach user info to the request object
+        // Attach the decoded user payload to the request object
         req.user = {
-            uid: decodedToken.uid,
-            email: decodedToken.email,
-            role: customClaims.role || 'student', // Default to 'student' if no role is set
+            id: decoded.id,
+            role: decoded.role,
         };
-
-        next();
+        
+        next(); // Token is valid, proceed to the next middleware or route handler
     } catch (error) {
-        console.error('Error verifying auth token:', error);
-        return res.status(403).json({ error: 'Forbidden. Invalid token.' });
+        return res.status(403).json({ error: 'Forbidden: Invalid or expired token.' });
     }
 };
 
-// 2. Authorization Middleware (adminOrOwnerMiddleware)
-// Checks if the authenticated user has the 'admin' or 'owner' role.
+/**
+ * Checks if the authenticated user has the 'admin' or 'owner' role.
+ * This middleware must run *after* the authMiddleware.
+ */
 export const adminOrOwnerMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const userRole = req.user?.role;
+    // This check assumes authMiddleware has already run and attached the user object
+    if (!req.user) {
+        return res.status(401).json({ error: 'Authentication error: User not found on request.' });
+    }
 
-    if (userRole === 'admin' || userRole === 'owner') {
-        next(); // User has the required role, proceed
+    const { role } = req.user;
+
+    if (role === 'admin' || role === 'owner') {
+        next(); // User has the required permissions
     } else {
-        res.status(403).json({ 
-            error: 'Forbidden. You do not have sufficient permissions.' 
-        });
+        return res.status(403).json({ error: 'Forbidden: You do not have sufficient permissions.' });
     }
 };
