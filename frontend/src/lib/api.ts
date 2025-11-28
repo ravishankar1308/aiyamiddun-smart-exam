@@ -91,7 +91,20 @@ export interface Metadata<T> { key: string; value: T; }
 
 async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  
+  const headers: Record<string, string> = { 
+    'Content-Type': 'application/json', 
+    ...options.headers 
+  };
+
+  // Get token from localStorage if it exists
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('aiyamiddun_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   const config: RequestInit = { ...options, headers };
   
   try {
@@ -146,13 +159,13 @@ export const apiSubmitExam = (id: string | number, submissionData: ExamSubmissio
 export const apiGetExamAnalytics = (id: string | number) => fetchApi<ExamAnalytics>(`/exams/${id}/analytics`);
 
 // --- METADATA APIS ---
-export const apiGetMetadata = async <T>(key: string, token: string) => {
-    const result = await fetchApi<Metadata<T>>(`/metadata/${key}`, { headers: { 'Authorization': `Bearer ${token}` } });
+export const apiGetMetadata = async <T>(key: string): Promise<T[]> => {
+    const result = await fetchApi<Metadata<T[]>>(`/metadata/${key}`);
     // The components expect an array to map over. If the API returns nothing
     // or the value is null, we default to an empty array to prevent runtime errors.
     return result?.value || [];
 };
-export const apiUpdateMetadata = <T>(key: string, value: T, token: string) => fetchApi<Metadata<T>>(`/metadata/${key}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ value }) });
+export const apiUpdateMetadata = <T>(key: string, value: T) => fetchApi<Metadata<T>>(`/metadata/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
 
 // --- AI APIS ---
 export const apiGenerateQuestions = (topic: string, difficulty: QuestionDifficulty, count: number) => 
@@ -162,5 +175,5 @@ export const apiGenerateQuestions = (topic: string, difficulty: QuestionDifficul
   });
 
 // --- RESULTS APIS ---
-export const apiGetResults = (token: string) => 
-  fetchApi<Result[]>('/results', { headers: { 'Authorization': `Bearer ${token}` } });
+export const apiGetResults = () => 
+  fetchApi<Result[]>('/results');
