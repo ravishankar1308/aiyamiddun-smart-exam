@@ -3,93 +3,155 @@
 // The base URL of our Node.js backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+// --- TYPE DEFINITIONS ---
+
+// A generic success message response
+export interface SuccessMessage {
+    message: string;
+}
+
+// A generic response for a successful deletion
+export type DeletionResponse = null;
+
+// User-related types
+export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
+export interface UserProfile {
+  id: number;
+  name: string;
+  username: string;
+  role: UserRole;
+  disabled: boolean;
+}
+export interface UserModificationData {
+    name: string;
+    username: string;
+    password: string; // The backend service requires the password on update as well
+    role: UserRole;
+}
+
+// Question-related types
+export type QuestionDifficulty = 'Easy' | 'Medium' | 'Hard';
+export type QuestionStatus = 'pending' | 'approved' | 'rejected';
+export interface Question {
+    id: number;
+    subject_id: number;
+    topic_id: number;
+    difficulty: QuestionDifficulty;
+    question_text: string;
+    options: string[];
+    correct_option: number;
+    author_id: number;
+    status: QuestionStatus;
+    is_disabled: boolean;
+    created_at: string;
+    updated_at: string;
+}
+export interface QuestionData extends Omit<Question, 'id' | 'author_id' | 'status' | 'is_disabled' | 'created_at' | 'updated_at'> {}
+
+// Exam-related types
+export interface Exam {
+    id: number;
+    title: string;
+    description: string;
+    subject_id: number;
+    author_id: number;
+    created_at: string;
+    updated_at: string;
+}
+export interface ExamData extends Omit<Exam, 'id' | 'author_id' | 'created_at' | 'updated_at'> {
+    question_ids: number[];
+}
+export interface FullExam extends Exam {
+    questions: Question[];
+}
+export interface ExamSubmissionData {
+    answers: Array<{ question_id: number; selected_option: number; }>;
+}
+export interface ExamResults {
+    score: number;
+    total: number;
+}
+export interface ExamAnalytics {
+    examId: number;
+    averageScore: number;
+    submissionCount: number;
+    questionStats: Array<{ question_id: number; correct_percentage: number; }>;
+}
+
+// Other types
+export type ApiFilters = Record<string, string | number | boolean>;
+export interface Metadata<T> { key: string; value: T; }
+
 /**
- * A helper function to perform API requests.
+ * A helper function to perform API requests with strong typing.
  * It automatically adds the correct headers and base URL.
  * @param endpoint The API endpoint to call (e.g., '/auth/login').
  * @param options The options for the fetch request (method, body, etc.).
- * @returns The JSON response from the API.
+ * @returns The JSON response from the API, typed with a generic.
  */
-async function fetchApi(endpoint: string, options: RequestInit = {}) {
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-
-  // Default headers
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-
-  const config: RequestInit = {
-    ...options,
-    headers,
-  };
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  const config: RequestInit = { ...options, headers };
   
   try {
     const response = await fetch(url, config);
-
-    // If the response is not ok (e.g., 4xx or 5xx), throw an error
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'An unknown API error occurred' }));
       throw new Error(errorData.error || `API request failed with status ${response.status}`);
     }
-
-    // If the response has no content (like a 204), return null
-    if (response.status === 204) {
-      return null;
-    }
-    
+    if (response.status === 204) return null as T;
     return response.json();
   } catch (error) {
     console.error('API Fetch Error:', error);
-    // Re-throw the error so the calling component can handle it
     throw error;
   }
 }
 
 // --- AUTH APIS ---
-export const apiLogin = (username, password) => 
-  fetchApi('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+export const apiLogin = (username: string, password: string) => 
+  fetchApi<UserProfile>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
   
-export const apiRegister = (userData) => 
-  fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(userData) });
+export const apiRegister = (userData: UserModificationData) => 
+  fetchApi<UserProfile>('/auth/register', { method: 'POST', body: JSON.stringify(userData) });
 
 // --- USER MANAGEMENT APIS ---
-export const apiGetUsers = () => fetchApi('/users');
-export const apiCreateUser = (userData) => fetchApi('/users', { method: 'POST', body: JSON.stringify(userData) });
-export const apiUpdateUser = (id, userData) => fetchApi(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) });
-export const apiToggleUserDisable = (id) => fetchApi(`/users/${id}/toggle-disable`, { method: 'PATCH' });
-export const apiDeleteUser = (id) => fetchApi(`/users/${id}`, { method: 'DELETE' });
+export const apiGetUsers = () => fetchApi<UserProfile[]>('/users');
+export const apiCreateUser = (userData: UserModificationData) => fetchApi<UserProfile>('/users', { method: 'POST', body: JSON.stringify(userData) });
+export const apiUpdateUser = (id: string | number, userData: UserModificationData) => fetchApi<SuccessMessage>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) });
+export const apiToggleUserDisable = (id: string | number) => fetchApi<SuccessMessage>(`/users/${id}/toggle-disable`, { method: 'PATCH' });
+export const apiDeleteUser = (id: string | number) => fetchApi<DeletionResponse>(`/users/${id}`, { method: 'DELETE' });
 
 // --- QUESTION APIS ---
-export const apiGetQuestions = (filters = {}) => {
-  const query = new URLSearchParams(filters).toString();
-  return fetchApi(`/questions?${query}`);
+export const apiGetQuestions = (filters: ApiFilters = {}) => {
+  const query = new URLSearchParams(filters as Record<string, string>).toString();
+  return fetchApi<Question[]>(`/questions?${query}`);
 };
-export const apiCreateQuestion = (questionData) => fetchApi('/questions', { method: 'POST', body: JSON.stringify(questionData) });
-export const apiUpdateQuestion = (id, questionData) => fetchApi(`/questions/${id}`, { method: 'PUT', body: JSON.stringify(questionData) });
-export const apiUpdateQuestionStatus = (id, status) => fetchApi(`/questions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
-export const apiToggleQuestionDisable = (id) => fetchApi(`/questions/${id}/toggle-disable`, { method: 'PATCH' });
-export const apiDeleteQuestion = (id) => fetchApi(`/questions/${id}`, { method: 'DELETE' });
+export const apiCreateQuestion = (questionData: QuestionData) => fetchApi<Question>('/questions', { method: 'POST', body: JSON.stringify(questionData) });
+export const apiUpdateQuestion = (id: string | number, questionData: Partial<QuestionData>) => fetchApi<SuccessMessage>(`/questions/${id}`, { method: 'PUT', body: JSON.stringify(questionData) });
+export const apiUpdateQuestionStatus = (id: string | number, status: QuestionStatus) => fetchApi<SuccessMessage>(`/questions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const apiToggleQuestionDisable = (id: string | number) => fetchApi<SuccessMessage>(`/questions/${id}/toggle-disable`, { method: 'PATCH' });
+export const apiDeleteQuestion = (id: string | number) => fetchApi<DeletionResponse>(`/questions/${id}`, { method: 'DELETE' });
 
 // --- EXAM APIS ---
-export const apiGetExams = (filters = {}) => {
-  const query = new URLSearchParams(filters).toString();
-  return fetchApi(`/exams?${query}`);
+export const apiGetExams = (filters: ApiFilters = {}) => {
+  const query = new URLSearchParams(filters as Record<string, string>).toString();
+  return fetchApi<Exam[]>(`/exams?${query}`);
 };
-export const apiGetExam = (id) => fetchApi(`/exams/${id}`);
-export const apiCreateExam = (examData) => fetchApi('/exams', { method: 'POST', body: JSON.stringify(examData) });
-export const apiUpdateExam = (id, examData) => fetchApi(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(examData) });
-export const apiDeleteExam = (id) => fetchApi(`/exams/${id}`, { method: 'DELETE' });
-export const apiSubmitExam = (id, submissionData) => fetchApi(`/exams/${id}/submit`, { method: 'POST', body: JSON.stringify(submissionData) });
-export const apiGetExamAnalytics = (id) => fetchApi(`/exams/${id}/analytics`);
+export const apiGetExam = (id: string | number) => fetchApi<FullExam>(`/exams/${id}`);
+export const apiCreateExam = (examData: ExamData) => fetchApi<Exam>('/exams', { method: 'POST', body: JSON.stringify(examData) });
+export const apiUpdateExam = (id: string | number, examData: Partial<ExamData>) => fetchApi<SuccessMessage>(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(examData) });
+export const apiDeleteExam = (id: string | number) => fetchApi<DeletionResponse>(`/exams/${id}`, { method: 'DELETE' });
+export const apiSubmitExam = (id: string | number, submissionData: ExamSubmissionData) => fetchApi<ExamResults>(`/exams/${id}/submit`, { method: 'POST', body: JSON.stringify(submissionData) });
+export const apiGetExamAnalytics = (id: string | number) => fetchApi<ExamAnalytics>(`/exams/${id}/analytics`);
 
 // --- METADATA APIS ---
-export const apiGetMetadata = (key) => fetchApi(`/metadata/${key}`);
-export const apiUpdateMetadata = (key, value) => fetchApi(`/metadata/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
+export const apiGetMetadata = <T>(key: string) => fetchApi<Metadata<T>>(`/metadata/${key}`);
+export const apiUpdateMetadata = <T>(key: string, value: T) => fetchApi<Metadata<T>>(`/metadata/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
 
 // --- AI APIS ---
-export const apiGenerateQuestions = (topic, difficulty, count) => 
-  fetchApi('/ai/generate-questions', { 
+export const apiGenerateQuestions = (topic: string, difficulty: QuestionDifficulty, count: number) => 
+  fetchApi<{ questions: QuestionData[] }>('/ai/generate-questions', { 
     method: 'POST', 
     body: JSON.stringify({ topic, difficulty, count })
   });
