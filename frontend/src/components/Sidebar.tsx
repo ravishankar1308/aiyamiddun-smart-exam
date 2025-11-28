@@ -63,11 +63,11 @@ export default function Sidebar() {
                         const isActive = pathname === link.href;
                         return (
                             <li key={link.name}>
-                                <Link href={link.href} legacyBehavior>
-                                    <a className={`flex items-center p-4 text-sm hover:bg-gray-700 ${isActive ? 'bg-blue-600' : ''}`}>
-                                        <link.icon className="w-5 h-5 mr-3" />
-                                        {link.name}
-                                    </a>
+                                <Link
+                                    href={link.href}
+                                    className={`flex items-center p-4 text-sm hover:bg-gray-700 ${isActive ? 'bg-blue-600' : ''}`}>
+                                    <link.icon className="w-5 h-5 mr-3" />
+                                    {link.name}
                                 </Link>
                             </li>
                         );
