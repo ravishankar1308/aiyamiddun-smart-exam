@@ -3,7 +3,7 @@ import { findUserByUsername } from './user.service';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret';
+const JWT_SECRET = 'your-super-secret-and-long-key-that-is-at-least-32-characters';
 
 export const login = async (username: string, password: string) => {
     const user = await findUserByUsername(username);
