@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, List, Filter, Plus, Edit2, Eye, EyeOff, X, Check } from 'lucide-react';
 import { apiGetMetadata, apiUpdateMetadata } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/context/AuthContext';
 
 // --- Helper Components for Settings ---
 const ListItem = ({ item, onEdit, onToggle, onDelete, extraInfo }) => {
