@@ -1,8 +1,8 @@
 -- database.sql
 
-CREATE DATABASE IF NOT EXISTS aiyamiddun_digital;
+CREATE DATABASE IF NOT EXISTS aiyamiddunexam;
 
-USE aiyamiddun_digital;
+USE aiyamiddunexam;
 
 -- Users Table: Stores login and profile information for all roles.
 CREATE TABLE IF NOT EXISTS `users` (
@@ -88,4 +88,3 @@ INSERT INTO `metadata` (`setting_key`, `setting_value`) VALUES
 ('sections', '[{"id": "sec1", "name": "Section A", "grade": "Grade 10", "subject": "Mathematics", "active": true}, {"id": "sec2", "name": "Section B", "grade": "Grade 10", "subject": "Mathematics", "active": true}]' ),
 ('questionTypes', '[{"id": "qt1", "name": "MCQ", "active": true}, {"id": "qt2", "name": "One Word", "active": true}, {"id": "qt3", "name": "Multiple Answer", "active": true}]' )
 ON DUPLICATE KEY UPDATE `setting_key`=`setting_key`; -- Prevents error on re-run
-
