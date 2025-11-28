@@ -8,6 +8,14 @@ export const getAllUsers = async () => {
     return rows;
 };
 
+export const findUserByUsername = async (username: string) => {
+    const [rows]: any = await connection.execute('SELECT * FROM users WHERE username = ?', [username]);
+    if (rows.length === 0) {
+        return null;
+    }
+    return rows[0];
+};
+
 export const createUser = async (userData: any) => {
     const { name, username, password, role } = userData;
     if (!name || !username || !password || !role) {
