@@ -4,14 +4,14 @@ import * as jwt from 'jsonwebtoken';
 import { User } from './user.service';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-// Explicitly define the type of the expiration variable to align with jsonwebtoken's SignOptions
 const JWT_EXPIRES_IN: string | number = process.env.JWT_EXPIRES_IN || '1h';
 
 if (!JWT_SECRET) {
   throw new Error('FATAL ERROR: JWT_SECRET is not defined in the environment variables.');
 }
 
-export const login = async (username: string, password: string): Promise<string | null> => {
+// Update the return type to include the user object
+export const login = async (username: string, password: string): Promise<{ token: string; user: Omit<User, 'password'> } | null> => {
     try {
         const [rows] = await connection.query('SELECT * FROM users WHERE username = ?', [username]);
         const users = rows as User[];
@@ -29,20 +29,23 @@ export const login = async (username: string, password: string): Promise<string 
             return null;
         }
 
+        // Remove password from user object before sending it to the client
+        const { password: _, ...userProfile } = user;
+
         const payload = {
             id: user.id,
             role: user.role,
         };
 
-        // By explicitly typing JWT_EXPIRES_IN, we can now create the options object
-        // without causing a type conflict.
         const options: jwt.SignOptions = {
             expiresIn: JWT_EXPIRES_IN,
         };
 
         const token = jwt.sign(payload, JWT_SECRET, options);
 
-        return token;
+        // Return both the token and the user profile
+        return { token, user: userProfile };
+
     } catch (error) {
         console.error('Error during login process:', error);
         throw new Error('Could not process login request.');
