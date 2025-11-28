@@ -146,7 +146,12 @@ export const apiSubmitExam = (id: string | number, submissionData: ExamSubmissio
 export const apiGetExamAnalytics = (id: string | number) => fetchApi<ExamAnalytics>(`/exams/${id}/analytics`);
 
 // --- METADATA APIS ---
-export const apiGetMetadata = <T>(key: string, token: string) => fetchApi<Metadata<T>>(`/metadata/${key}`, { headers: { 'Authorization': `Bearer ${token}` } });
+export const apiGetMetadata = async <T>(key: string, token: string) => {
+    const result = await fetchApi<Metadata<T>>(`/metadata/${key}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    // The components expect an array to map over. If the API returns nothing
+    // or the value is null, we default to an empty array to prevent runtime errors.
+    return result?.value || [];
+};
 export const apiUpdateMetadata = <T>(key: string, value: T, token: string) => fetchApi<Metadata<T>>(`/metadata/${key}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ value }) });
 
 // --- AI APIS ---
