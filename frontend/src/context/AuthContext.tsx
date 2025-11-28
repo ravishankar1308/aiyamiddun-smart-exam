@@ -15,12 +15,20 @@ interface UserProfile {
   disabled: boolean;
 }
 
+// Define a type for the registration data
+interface RegisterData {
+    name: string;
+    username: string;
+    password: string;
+    role: 'student' | 'teacher' | 'admin' | 'owner';
+}
+
 // Define the context value
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
-  login: (username, password) => Promise<void>;
-  register: (userData) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
 }
 
@@ -50,7 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false); // Done checking
   }, []);
 
-  const login = async (username, password) => {
+  const login = async (username: string, password: string) => {
     setLoading(true);
     try {
       const userData = await apiLogin(username, password);
@@ -61,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
+  const register = async (userData: RegisterData) => {
     setLoading(true);
     try {
       const newUser = await apiRegister(userData);
