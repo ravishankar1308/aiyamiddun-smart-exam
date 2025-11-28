@@ -8,11 +8,16 @@ export const getMetadata = async (req: Request, res: Response) => {
     }
 
     try {
-        const metadata = await metadataService.getMetadata(key);
-        if (metadata) {
-            res.json(metadata);
+        const metadataResult = await metadataService.getMetadata(key);
+        if (metadataResult) {
+            // The service might return the full prisma object {id, key, value}
+            // or it might return the raw default value (e.g., an array).
+            // The frontend expects an object with a `value` property which holds the data array.
+            // We ensure the response always has this structure.
+            const value = metadataResult.value !== undefined ? metadataResult.value : metadataResult;
+            res.json({ key, value });
         } else {
-            // The service now guarantees a value, but we keep this for safety
+            // This case might not be reachable if the service always provides a default
             res.status(404).json({ error: `Metadata with key '${key}' not found.` });
         }
     } catch (error) {
