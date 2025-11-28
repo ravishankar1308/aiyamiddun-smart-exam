@@ -29,6 +29,12 @@ export interface UserModificationData {
     role: UserRole;
 }
 
+// --- NEW: This interface correctly represents the login response --- 
+export interface LoginResponse {
+  token: string;
+  user: UserProfile;
+}
+
 // Question-related types
 export type QuestionDifficulty = 'Easy' | 'Medium' | 'Hard';
 export type QuestionStatus = 'pending' | 'approved' | 'rejected';
@@ -109,8 +115,9 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 }
 
 // --- AUTH APIS ---
+// --- FIXED: Now uses the correct LoginResponse type --- 
 export const apiLogin = (username: string, password: string) => 
-  fetchApi<UserProfile>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+  fetchApi<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
   
 export const apiRegister = (userData: UserModificationData) => 
   fetchApi<UserProfile>('/auth/register', { method: 'POST', body: JSON.stringify(userData) });

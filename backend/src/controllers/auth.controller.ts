@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
 import * as userService from '../services/user.service';
@@ -10,7 +9,11 @@ export const login = async (req: Request, res: Response) => {
         if (!result) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        res.json(result); // Send the full result { token, user }
+
+        // The 'result' from the service now correctly contains { token, user: { ... } }
+        // The controller's only job is to send that result as the response.
+        res.json(result);
+
     } catch (error) {
         res.status(500).json({ message: (error as Error).message });
     }
