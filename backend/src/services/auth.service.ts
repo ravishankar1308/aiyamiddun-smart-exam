@@ -4,7 +4,7 @@ import * as jwt from 'jsonwebtoken';
 import { User } from './user.service';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN: string | number = process.env.JWT_EXPIRES_IN || '1h';
+const JWT_EXPIRES_IN: string | number = 3600;
 
 if (!JWT_SECRET) {
   throw new Error('FATAL ERROR: JWT_SECRET is not defined in the environment variables.');
