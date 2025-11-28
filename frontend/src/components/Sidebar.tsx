@@ -44,10 +44,10 @@ export default function Sidebar() {
     const pathname = usePathname();
     const { user, logout } = useAuth();
 
-    // Directly get the links for the user's role
-    const userLinks = user ? navLinks[user.role] || [] : [];
+    // Directly get the links for the user's role, default to an empty array if no role
+    const userLinks = user ? navLinks[user.role as keyof typeof navLinks] || [] : [];
 
-    // Simple deduplication based on the 'name' property
+    // Simple deduplication based on the 'name' property to avoid duplicate links
     const uniqueLinks = [...new Map(userLinks.map(item => [item.name, item])).values()];
 
 
