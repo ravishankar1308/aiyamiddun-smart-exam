@@ -1,16 +1,24 @@
-import { Request, Response } from 'express';
+// backend/src/controllers/ai.controller.ts
+
+import { Request, Response, NextFunction } from 'express';
 import * as aiService from '../services/ai.service';
 
-export const generateQuestion = async (req: Request, res: Response) => {
-    const { prompt } = req.body;
-    if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required' });
-    }
+/**
+ * Controller to handle AI-based question generation.
+ */
+export const generateQuestionsHandler = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const generatedContent = await aiService.generateQuestion(prompt);
-        res.json(generatedContent);
+        const { topic, difficulty, count } = req.body;
+
+        if (!topic || !difficulty || !count) {
+            return res.status(400).json({ error: 'Topic, difficulty, and count are required.' });
+        }
+
+        const questions = await aiService.generateQuestions(topic, difficulty, parseInt(count));
+        
+        res.status(200).json(questions);
+
     } catch (error) {
-        console.error('Error calling generative AI:', error);
-        res.status(500).json({ error: 'Failed to generate content' });
+        next(error); // Pass errors to the centralized error handler
     }
 };

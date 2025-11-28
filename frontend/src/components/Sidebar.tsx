@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, BookOpen, Edit, BarChart2, Settings, LogOut } from 'lucide-react';
+import { Home, Users, BookOpen, Edit, BarChart2, Settings, LogOut, BrainCircuit } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const navLinks = {
@@ -13,6 +13,7 @@ const navLinks = {
     ],
     owner: [
         { name: 'Users', href: '/dashboard/users', icon: Users },
+        { name: 'AI Generator', href: '/dashboard/generator', icon: BrainCircuit },
         { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ],
     admin: [
@@ -20,12 +21,14 @@ const navLinks = {
         { name: 'Questions', href: '/dashboard/questions', icon: BookOpen },
         { name: 'Exams', href: '/dashboard/exams', icon: Edit },
         { name: 'Results', href: '/dashboard/results', icon: BarChart2 },
+        { name: 'AI Generator', href: '/dashboard/generator', icon: BrainCircuit },
         { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ],
     teacher: [
         { name: 'Questions', href: '/dashboard/questions', icon: BookOpen },
         { name: 'Exams', href: '/dashboard/exams', icon: Edit },
         { name: 'Results', href: '/dashboard/results', icon: BarChart2 },
+        { name: 'AI Generator', href: '/dashboard/generator', icon: BrainCircuit },
     ],
     student: [
         { name: 'Take Exam', href: '/dashboard/take-exam', icon: Edit },

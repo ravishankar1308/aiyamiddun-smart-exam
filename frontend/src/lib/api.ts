@@ -86,3 +86,10 @@ export const apiGetExamAnalytics = (id) => fetchApi(`/exams/${id}/analytics`);
 // --- METADATA APIS ---
 export const apiGetMetadata = (key) => fetchApi(`/metadata/${key}`);
 export const apiUpdateMetadata = (key, value) => fetchApi(`/metadata/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
+
+// --- AI APIS ---
+export const apiGenerateQuestions = (topic, difficulty, count) => 
+  fetchApi('/ai/generate-questions', { 
+    method: 'POST', 
+    body: JSON.stringify({ topic, difficulty, count })
+  });
