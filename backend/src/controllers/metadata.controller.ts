@@ -18,13 +18,10 @@ export const getMetadata = async (req: Request, res: Response) => {
     }
 
     try {
-        const metadataResult = await metadataService.getMetadata(key);
-        if (metadataResult) {
-            const value = metadataResult.value !== undefined ? metadataResult.value : metadataResult;
-            res.json({ key, value });
-        } else {
-            res.status(404).json({ error: `Metadata with key '${key}' not found.` });
-        }
+        // The service function now correctly returns just the value (e.g., the array)
+        const metadataValue = await metadataService.getMetadata(key);
+        // The frontend expects the value to be sent directly, not wrapped in an object.
+        res.json(metadataValue);
     } catch (error) {
         console.error(`Error fetching metadata for key '${key}':`, error);
         res.status(500).json({ error: 'Internal server error' });
