@@ -81,11 +81,3 @@ CREATE TABLE IF NOT EXISTS `quiz_results` (
 INSERT INTO `users` (`name`, `username`, `password`, `role`) VALUES
 ('Ravishankar', 'ravishankar.0813', 'Ravi1234@', 'owner')
 ON DUPLICATE KEY UPDATE `name`=`name`; -- Prevents error on re-run
-
--- Seed initial metadata keys to ensure the settings page works correctly
-INSERT INTO `metadata` (`key`, `value`) VALUES
-('grades', '[{"id": "g10", "name": "Grade 10", "active": true}, {"id": "g11", "name": "Grade 11", "active": true}, {"id": "g12", "name": "Grade 12", "active": true}]' ),
-('subjects', '[{"id": "s1", "name": "Mathematics", "grade": "Grade 10", "active": true}, {"id": "s2", "name": "Science", "grade": "Grade 10", "active": true}, {"id": "s3", "name": "Physics", "grade": "Grade 11", "active": true}]' ),
-('sections', '[{"id": "sec1", "name": "Section A", "grade": "Grade 10", "subject": "Mathematics", "active": true}, {"id": "sec2", "name": "Section B", "grade": "Grade 10", "subject": "Mathematics", "active": true}]' ),
-('questionTypes', '[{"id": "qt1", "name": "MCQ", "active": true}, {"id": "qt2", "name": "One Word", "active": true}, {"id": "qt3", "name": "Multiple Answer", "active": true}]' )
-ON DUPLICATE KEY UPDATE `key`=`key`; -- Prevents error on re-run

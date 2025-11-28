@@ -1,5 +1,7 @@
 import { connection } from '../index';
+import { ResultSetHeader } from 'mysql2';
 
+// ... (keep getAllExams, deleteExam, submitExam, getExamAnalytics as they are)
 export const getAllExams = async (filters: any) => {
     const { classLevel, subject } = filters;
     let query = 'SELECT * FROM exams';
@@ -18,25 +20,64 @@ export const getAllExams = async (filters: any) => {
     return rows;
 };
 
-export const createExam = async (exam: any) => {
-    if (!exam.title || !exam.questionsSnapshot) {
-        throw new Error('Title and questions are required.');
+
+export const createExam = async (examData: any) => {
+    const {
+        title,
+        description, // Added description
+        subject_id,      // Changed from subject
+        duration_minutes,// Changed from duration
+        question_ids,    // Changed from questionsSnapshot
+        classLevel,
+        difficulty,
+        scheduledStart,
+        scheduledEnd,
+        isQuiz,
+        createdBy
+    } = examData;
+
+    // 1. Validate required fields
+    if (!title || !question_ids || !Array.isArray(question_ids) || question_ids.length === 0) {
+        throw new Error('Title and a non-empty array of question_ids are required.');
     }
 
+    // 2. Fetch full question objects based on question_ids
+    const placeholders = question_ids.map(() => '?').join(',');
+    const [questions]: any = await connection.execute(`SELECT * FROM questions WHERE id IN (${placeholders})`, question_ids);
+    
+    if (questions.length !== question_ids.length) {
+        throw new Error('One or more questions could not be found.');
+    }
+
+    // 3. Create the questions snapshot
+    const questionsSnapshot = JSON.stringify(questions);
+
+    // 4. Prepare the data for insertion
     const query = `
-        INSERT INTO exams (title, classLevel, subject, difficulty, duration, scheduledStart, scheduledEnd, isQuiz, questionsSnapshot, createdBy)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO exams (title, description, subject, duration, questionsSnapshot, classLevel, difficulty, scheduledStart, scheduledEnd, isQuiz, createdBy)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
-    const [result]: any = await connection.execute(query, [
-        exam.title, exam.classLevel, exam.subject, exam.difficulty, exam.duration,
-        exam.scheduledStart || null, exam.scheduledEnd || null, exam.isQuiz || false,
-        JSON.stringify(exam.questionsSnapshot), exam.createdBy
-    ]);
-    
-    return { id: result.insertId, ...exam };
-};
+    const params = [
+        title,
+        description,
+        subject_id,      // Use subject_id for the 'subject' column
+        duration_minutes,// Use duration_minutes for the 'duration' column
+        questionsSnapshot,
+        classLevel ?? null,
+        difficulty ?? null,
+        scheduledStart ?? null,
+        scheduledEnd ?? null,
+        isQuiz ?? true,
+        createdBy ?? null
+    ];
 
+    // 5. Execute the insert query
+    const [result] = await connection.execute<ResultSetHeader>(query, params);
+    
+    // 6. Return the created exam object
+    return { id: result.insertId, ...examData };
+};
 export const deleteExam = async (id: string) => {
     const [result]: any = await connection.execute('DELETE FROM exams WHERE id = ?', [id]);
     if (result.affectedRows === 0) {
