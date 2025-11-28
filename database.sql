@@ -15,12 +15,12 @@ CREATE TABLE IF NOT EXISTS `users` (
   `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Metadata Table: A single table to store all dynamic settings as JSON.
--- This mirrors the simple, flexible structure from the Firestore example.
+-- Metadata Table: For storing dynamic lists like grades, subjects, etc.
 CREATE TABLE IF NOT EXISTS `metadata` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `setting_key` VARCHAR(255) UNIQUE NOT NULL,
-  `setting_value` JSON,
+  `key` VARCHAR(255) NOT NULL UNIQUE,
+  `value` JSON,
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -82,9 +82,10 @@ INSERT INTO `users` (`name`, `username`, `password`, `role`) VALUES
 ('Ravishankar', 'ravishankar.0813', 'Ravi1234@', 'owner')
 ON DUPLICATE KEY UPDATE `name`=`name`; -- Prevents error on re-run
 
-INSERT INTO `metadata` (`setting_key`, `setting_value`) VALUES
+-- Seed initial metadata keys to ensure the settings page works correctly
+INSERT INTO `metadata` (`key`, `value`) VALUES
 ('grades', '[{"id": "g10", "name": "Grade 10", "active": true}, {"id": "g11", "name": "Grade 11", "active": true}, {"id": "g12", "name": "Grade 12", "active": true}]' ),
 ('subjects', '[{"id": "s1", "name": "Mathematics", "grade": "Grade 10", "active": true}, {"id": "s2", "name": "Science", "grade": "Grade 10", "active": true}, {"id": "s3", "name": "Physics", "grade": "Grade 11", "active": true}]' ),
 ('sections', '[{"id": "sec1", "name": "Section A", "grade": "Grade 10", "subject": "Mathematics", "active": true}, {"id": "sec2", "name": "Section B", "grade": "Grade 10", "subject": "Mathematics", "active": true}]' ),
 ('questionTypes', '[{"id": "qt1", "name": "MCQ", "active": true}, {"id": "qt2", "name": "One Word", "active": true}, {"id": "qt3", "name": "Multiple Answer", "active": true}]' )
-ON DUPLICATE KEY UPDATE `setting_key`=`setting_key`; -- Prevents error on re-run
+ON DUPLICATE KEY UPDATE `key`=`key`; -- Prevents error on re-run
