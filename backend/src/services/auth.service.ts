@@ -4,7 +4,8 @@ import * as jwt from 'jsonwebtoken';
 import { User } from './user.service';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+// Explicitly define the type of the expiration variable to align with jsonwebtoken's SignOptions
+const JWT_EXPIRES_IN: string | number = process.env.JWT_EXPIRES_IN || '1h';
 
 if (!JWT_SECRET) {
   throw new Error('FATAL ERROR: JWT_SECRET is not defined in the environment variables.');
@@ -33,9 +34,13 @@ export const login = async (username: string, password: string): Promise<string 
             role: user.role,
         };
 
-        // The jsonwebtoken library correctly handles a string like '1h' for expiration.
-        // The previous explicit typing was causing the issue.
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        // By explicitly typing JWT_EXPIRES_IN, we can now create the options object
+        // without causing a type conflict.
+        const options: jwt.SignOptions = {
+            expiresIn: JWT_EXPIRES_IN,
+        };
+
+        const token = jwt.sign(payload, JWT_SECRET, options);
 
         return token;
     } catch (error) {
