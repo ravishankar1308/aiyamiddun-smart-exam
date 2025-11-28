@@ -4,20 +4,27 @@ import * as jwt from 'jsonwebtoken';
 import { User } from './user.service';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = 3600;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
 
 if (!JWT_SECRET) {
   throw new Error('FATAL ERROR: JWT_SECRET is not defined in the environment variables.');
 }
 
-export const login = async (email: string, password: string): Promise<string | null> => {
+/**
+ * Authenticates a user by username and password.
+ * @param username - The user's username.
+ * @param password - The user's plain-text password.
+ * @returns A JWT token if authentication is successful; otherwise, null.
+ */
+export const login = async (username: string, password: string): Promise<string | null> => {
     try {
-        const [rows] = await connection.query('SELECT * FROM users WHERE email = ?', [email]);
+        // Find the user by username, not email
+        const [rows] = await connection.query('SELECT * FROM users WHERE username = ?', [username]);
         const users = rows as User[];
 
         if (users.length === 0) {
-            console.warn(`Login attempt failed for email: ${email}. User not found.`);
-            return null;
+            console.warn(`Login attempt failed for username: ${username}. User not found.`);
+            return null; // User not found
         }
 
         const user = users[0];
@@ -25,17 +32,15 @@ export const login = async (email: string, password: string): Promise<string | n
         const isMatch = await bcrypt.compare(password, user.password!);
 
         if (!isMatch) {
-            console.warn(`Login attempt failed for email: ${email}. Incorrect password.`);
-            return null;
+            console.warn(`Login attempt failed for username: ${username}. Incorrect password.`);
+            return null; // Passwords do not match
         }
 
-        // Define the payload with an explicit type
         const payload: { id: number; role: string } = {
             id: user.id,
             role: user.role,
         };
 
-        // Explicitly type the options to avoid ambiguity
         const options: jwt.SignOptions = {
             expiresIn: JWT_EXPIRES_IN,
         };
