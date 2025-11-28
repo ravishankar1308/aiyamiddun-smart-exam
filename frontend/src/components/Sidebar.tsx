@@ -7,25 +7,22 @@ import { usePathname } from 'next/navigation';
 import { Home, Users, BookOpen, Edit, BarChart2, Settings, LogOut, BrainCircuit, Database } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
+// navLinks are now structured hierarchically. 
+// Each role gets the links of the roles below it.
 const navLinks = {
     all: [
         { name: 'Dashboard', href: '/dashboard', icon: Home },
     ],
+    // Links only for owners
     owner: [
-        { name: 'Users', href: '/dashboard/users', icon: Users },
-        { name: 'Metadata', href: '/dashboard/metadata', icon: Database },
-        { name: 'AI Generator', href: '/dashboard/generator', icon: BrainCircuit },
-        { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+        // Future owner-specific links like 'System Health' or 'Billing' would go here.
     ],
+    // Admin-specific links (they also get all teacher links)
     admin: [
         { name: 'Users', href: '/dashboard/users', icon: Users },
-        { name: 'Questions', href: '/dashboard/questions', icon: BookOpen },
-        { name: 'Exams', href: '/dashboard/exams', icon: Edit },
-        { name: 'Results', href: '/dashboard/results', icon: BarChart2 },
         { name: 'Metadata', href: '/dashboard/metadata', icon: Database },
-        { name: 'AI Generator', href: '/dashboard/generator', icon: BrainCircuit },
-        { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ],
+    // Teacher-specific links
     teacher: [
         { name: 'Questions', href: '/dashboard/questions', icon: BookOpen },
         { name: 'Exams', href: '/dashboard/exams', icon: Edit },
@@ -33,6 +30,7 @@ const navLinks = {
         { name: 'AI Generator', href: '/dashboard/generator', icon: BrainCircuit },
         { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     ],
+    // Student-specific links
     student: [
         { name: 'Take Exam', href: '/dashboard/take-exam', icon: Edit },
         { name: 'My Results', href: '/dashboard/my-results', icon: BarChart2 },
@@ -44,12 +42,27 @@ export default function Sidebar() {
     const { user, logout } = useAuth();
 
     const getLinksForRole = (role) => {
-        let links = [...navLinks.all];
-        if (role === 'owner') links.push(...navLinks.owner);
-        if (role === 'admin') links.push(...navLinks.admin);
-        if (role === 'teacher') links.push(...navLinks.teacher);
-        if (role === 'student') links.push(...navLinks.student);
-        // Remove duplicates for users with multiple roles (e.g., admin is also a teacher)
+        const links = [...navLinks.all];
+
+        // Use a switch with fall-through to build permissions hierarchically
+        // Owner gets all links, Admin gets theirs + teacher, etc.
+        switch (role) {
+            case 'owner':
+                links.push(...navLinks.owner);
+                // fall-through
+            case 'admin':
+                links.push(...navLinks.admin);
+                // fall-through
+            case 'teacher':
+                links.push(...navLinks.teacher);
+                break;
+            case 'student':
+                links.push(...navLinks.student);
+                break;
+        }
+
+        // Remove duplicates and maintain insertion order.
+        // This ensures roles with overlapping permissions don't get duplicate links.
         return [...new Map(links.map(item => [item.name, item])).values()];
     };
 
