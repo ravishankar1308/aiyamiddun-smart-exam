@@ -3,8 +3,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiGetMetadata, apiGetQuestions, apiCreateExam } from '@/lib/api';
+import { apiGetMetadata, apiGetQuestions, apiCreateExam, Question } from '@/lib/api';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+
+// Define a more specific type for your metadata subjects
+interface Subject {
+    id: string;
+    name: string;
+}
 
 export default function NewExamPage() {
     const [step, setStep] = useState(1);
@@ -14,9 +20,9 @@ export default function NewExamPage() {
         subject_id: '',
         duration_minutes: 60,
     });
-    const [availableQuestions, setAvailableQuestions] = useState([]);
+    const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
     const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
-    const [metadata, setMetadata] = useState({ subjects: [] });
+    const [metadata, setMetadata] = useState<{ subjects: Subject[] }>({ subjects: [] });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
@@ -25,8 +31,12 @@ export default function NewExamPage() {
         const fetchInitialData = async () => {
             try {
                 setLoading(true);
-                const [meta, questions] = await Promise.all([apiGetMetadata(), apiGetQuestions()]);
-                setMetadata(meta);
+                // Fetch subjects metadata and all available questions
+                const [subjects, questions] = await Promise.all([
+                    apiGetMetadata<Subject>('subjects'),
+                    apiGetQuestions()
+                ]);
+                setMetadata({ subjects });
                 setAvailableQuestions(questions);
             } catch (err: any) {
                 setError(err.message || 'Failed to load initial data.');
@@ -79,7 +89,7 @@ export default function NewExamPage() {
     };
 
     if (loading && step === 1) return <p>Loading exam editor...</p>;
-    if (error) return <p className="text-red-500">Error: {error}</p>;
+    if (error && step === 1) return <p className="text-red-500">Error: {error}</p>;
 
     return (
         <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
