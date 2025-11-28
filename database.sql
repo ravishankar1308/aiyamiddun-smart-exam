@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS `exams` (
   `duration` INT, -- Duration in minutes
   `scheduledStart` DATETIME,
   `scheduledEnd` DATETIME,
-  `isQuiz` BOOLEAN DEFAULT FALSE,
+  `isQuiz` BOOLEAN DEFAULT TRUE,
   `questionsSnapshot` JSON, -- A full snapshot of the questions at the time of creation
   `createdBy` VARCHAR(255),
   `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
