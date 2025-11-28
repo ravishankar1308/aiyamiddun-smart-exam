@@ -1,6 +1,6 @@
 
 import * as jwt from 'jsonwebtoken';
-import { pool } from '../config/database'; // Assuming you have a database configuration
+import { connection } from '../index'; // Use the shared connection from index.ts
 
 // This should be in an environment variable in a real application!
 const JWT_SECRET = 'your-super-secret-and-long-key-that-is-at-least-32-characters';
@@ -14,15 +14,16 @@ const JWT_EXPIRES_IN = '1h'; // Token expiration time
  * @returns An object with the token and expiration if successful, otherwise null.
  */
 export const login = async (email: string, password: string) => {
-    // 1. Find the user by email
-    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    // 1. Find the user by email using mysql2 syntax
+    const [rows] = await connection.query('SELECT * FROM users WHERE email = ?', [email]);
+    const users = rows as any[];
 
-    if (userResult.rows.length === 0) {
+    if (users.length === 0) {
         console.log(`Login attempt failed: No user found for email ${email}`);
         return null; // User not found
     }
 
-    const user = userResult.rows[0];
+    const user = users[0];
 
     // 2. Check the password (insecure plain text comparison)
     if (user.password !== password) {
