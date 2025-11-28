@@ -1,6 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config();
 
 import express, { Express, Request, Response, NextFunction } from 'express';
-import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
 import cors from 'cors'; // Import cors
 
@@ -11,8 +12,6 @@ import questionRoutes from './routes/question.routes';
 import examRoutes from './routes/exam.routes';
 import aiRoutes from './routes/ai.routes';
 import metadataRoutes from './routes/metadata.routes';
-
-dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3001; // Changed to 3001 to avoid potential conflicts
