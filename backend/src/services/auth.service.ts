@@ -6,22 +6,25 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret';
 
 export const login = async (username: string, password: string) => {
+    const user = await findUserByUsername(username);
 
-    // --- EXTREME DEBUGGING STEP --- 
-    // This function will now ignore the username and password and return a hardcoded object.
-    // This completely removes the database from the login equation to test the response pipeline.
+    if (!user) {
+        throw new Error('User not found');
+    }
 
-    const fakeUser = {
-        id: '12345',
-        name: "Debug User",
-        username: "debug@test.com",
-        role: "owner",
-    };
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    const token = jwt.sign(fakeUser, JWT_SECRET, { expiresIn: '1h' });
+    if (!isPasswordValid) {
+        throw new Error('Invalid password');
+    }
+
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+
+    // Important: Do not send the password back to the client
+    const { password: _, ...userWithoutPassword } = user;
 
     return {
         token,
-        user: fakeUser,
+        user: userWithoutPassword,
     };
 };
