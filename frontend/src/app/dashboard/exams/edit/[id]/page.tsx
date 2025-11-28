@@ -9,7 +9,6 @@ import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 export default function EditExamPage() { 
     const params = useParams();
     const examId = params.id as string;
-    console.log('EditExamPage component rendered. Exam ID from useParams:', examId);
 
     const [step, setStep] = useState(1);
     const [examDetails, setExamDetails] = useState({
@@ -20,16 +19,17 @@ export default function EditExamPage() {
     });
     const [availableQuestions, setAvailableQuestions] = useState([]);
     const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
-    const [metadata, setMetadata] = useState({ subjects: [] });
+    const [metadata, setMetadata] = useState<{ subjects: any[] }>({ subjects: [] });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     const fetchExamData = useCallback(async () => {
+        if (!examId) return; // Don't fetch if examId is not available yet
         console.log('Calling fetchExamData for examId:', examId);
         try {
             setLoading(true);
-            setError(null); // Reset error state
+            setError(null);
             const [examData, meta, questions] = await Promise.all([
                 apiGetExam(examId),
                 apiGetMetadata('subjects'), 
@@ -38,14 +38,26 @@ export default function EditExamPage() {
             console.log('API data received:', { examData, meta, questions });
             
             setExamDetails({
-                title: examData.title,
-                description: examData.description,
-                subject_id: examData.subject_id,
-                duration_minutes: examData.duration_minutes,
+                title: examData.title || '',
+                description: examData.description || '',
+                subject_id: examData.subject_id || '',
+                duration_minutes: examData.duration_minutes || 60,
             });
-            setSelectedQuestions(examData.questions.map((q: any) => q.id));
-            setMetadata(meta as any);
-            setAvailableQuestions(questions);
+
+            // Safely set selected questions
+            if (examData.questions && Array.isArray(examData.questions)) {
+                setSelectedQuestions(examData.questions.map((q: any) => q.id));
+            }
+
+            // Safely set metadata
+            if (meta && Array.isArray(meta.subjects)) {
+                setMetadata(meta);
+            } else {
+                // Handle cases where metadata might not be in the expected format
+                setMetadata({ subjects: [] });
+            }
+
+            setAvailableQuestions(questions || []);
 
         } catch (err: any) {
             console.error('Error in fetchExamData:', err);
@@ -96,7 +108,7 @@ export default function EditExamPage() {
         try {
             const examData = { ...examDetails, question_ids: selectedQuestions };
             await apiUpdateExam(examId, examData);
-            router.push('/dashboard/exams'); // Redirect after successful update
+            router.push('/dashboard/exams');
         } catch (err: any) {
             setError(err.message || 'Failed to update exam.');
         } finally {
@@ -136,7 +148,7 @@ export default function EditExamPage() {
                     </div>
                     <div>
                         <label className="block font-bold mb-2">Description</label>
-                        <textarea name="description" value={examDetails.description} onChange={handleDetailChange} className="w-full p-2 border rounded-md h-24" />
+                        <textarea name="description" value={examDetails.description || ''} onChange={handleDetailChange} className="w-full p-2 border rounded-md h-24" />
                     </div>
                     <div className="grid grid-cols-2 gap-6">
                          <div>
@@ -165,7 +177,7 @@ export default function EditExamPage() {
                         <h2 className="text-2xl font-semibold">Select Questions ({selectedQuestions.length} selected)</h2>
                     </div>
                     <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-3">
-                        {availableQuestions.map((q: any) => (
+                        {(availableQuestions || []).map((q: any) => (
                             <div key={q.id} className="flex items-center bg-gray-50 p-3 rounded-md">
                                 <input type="checkbox" checked={selectedQuestions.includes(q.id)} onChange={() => handleQuestionToggle(q.id)} className="h-5 w-5 mr-4"/>
                                 <div>
