@@ -7,6 +7,8 @@ import { apiGetExam, apiUpdateExam, apiGetMetadata, apiGetQuestions } from '@/li
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 
 export default function EditExamPage({ params }: { params: { id: string } }) {
+    console.log('EditExamPage component rendered. Params:', params);
+
     const [step, setStep] = useState(1);
     const [examDetails, setExamDetails] = useState({
         title: '',
@@ -23,13 +25,16 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
     const examId = params.id;
 
     const fetchExamData = useCallback(async () => {
+        console.log('Calling fetchExamData for examId:', examId);
         try {
             setLoading(true);
+            setError(null); // Reset error state
             const [examData, meta, questions] = await Promise.all([
                 apiGetExam(examId),
                 apiGetMetadata('subjects'), 
                 apiGetQuestions()
             ]);
+            console.log('API data received:', { examData, meta, questions });
             
             setExamDetails({
                 title: examData.title,
@@ -42,13 +47,16 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
             setAvailableQuestions(questions);
 
         } catch (err: any) {
+            console.error('Error in fetchExamData:', err);
             setError(err.message || 'Failed to load exam data.');
         } finally {
             setLoading(false);
+            console.log('Finished fetchExamData, loading set to false.');
         }
     }, [examId]);
 
     useEffect(() => {
+        console.log('useEffect triggered. examId:', examId);
         if (examId) {
             fetchExamData();
         }
