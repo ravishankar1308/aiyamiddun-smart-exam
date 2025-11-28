@@ -3,17 +3,28 @@ import bcrypt from 'bcryptjs';
 
 const SALT_ROUNDS = 10; // Standard salt rounds for bcrypt
 
+// Define and export the User type
+export interface User {
+    id: number;
+    name: string;
+    username: string;
+    password?: string; // Make password optional as it won't always be selected
+    role: string;
+    disabled: boolean;
+}
+
 export const getAllUsers = async () => {
     const [rows] = await connection.execute('SELECT id, name, username, role, disabled FROM users');
-    return rows;
+    return rows as User[];
 };
 
 export const findUserByUsername = async (username: string) => {
-    const [rows]: any = await connection.execute('SELECT * FROM users WHERE username = ?', [username]);
-    if (rows.length === 0) {
+    const [rows] = await connection.execute('SELECT * FROM users WHERE username = ?', [username]);
+    const users = rows as User[];
+    if (users.length === 0) {
         return null;
     }
-    return rows[0];
+    return users[0];
 };
 
 export const createUser = async (userData: any) => {
@@ -22,7 +33,6 @@ export const createUser = async (userData: any) => {
         throw new Error('All user fields are required.');
     }
 
-    // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     try {
@@ -42,36 +52,32 @@ export const createUser = async (userData: any) => {
 export const updateUser = async (id: string, userData: any) => {
     const { name, password, role } = userData;
 
-    // Base query and parameters
     let query = 'UPDATE users SET name = ?, role = ?';
     const params: any[] = [name, role];
 
-    // If a new password is provided, hash it and add it to the query
     if (password) {
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         query += ', password = ?';
         params.push(hashedPassword);
     }
 
-    // Finalize the query
     query += ' WHERE id = ?';
     params.push(id);
 
     try {
         await connection.execute(query, params);
     } catch (error) {
-        // The username cannot be changed, so no duplicate error is expected here.
-        // However, we keep the general error handling.
         throw error;
     }
 };
 
 export const toggleUserStatus = async (id: string) => {
-    const [rows]: any = await connection.execute('SELECT disabled FROM users WHERE id = ?', [id]);
-    if (rows.length === 0) {
+    const [rows] = await connection.execute('SELECT disabled FROM users WHERE id = ?', [id]);
+    const users = rows as User[];
+    if (users.length === 0) {
         throw new Error('User not found');
     }
-    const currentStatus = rows[0].disabled;
+    const currentStatus = users[0].disabled;
     await connection.execute('UPDATE users SET disabled = ? WHERE id = ?', [!currentStatus, id]);
     return `User ${!currentStatus ? 'disabled' : 'enabled'} successfully`;
 };
