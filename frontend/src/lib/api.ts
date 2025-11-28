@@ -77,6 +77,15 @@ export interface ExamAnalytics {
     questionStats: Array<{ question_id: number; correct_percentage: number; }>;
 }
 
+export interface Result {
+    id: number;
+    score: number;
+    submitted_at: string;
+    student_name: string;
+    exam_title: string;
+    total_marks: number;
+}
+
 export type ApiFilters = Record<string, string | number | boolean>;
 export interface Metadata<T> { key: string; value: T; }
 
@@ -146,3 +155,7 @@ export const apiGenerateQuestions = (topic: string, difficulty: QuestionDifficul
     method: 'POST', 
     body: JSON.stringify({ topic, difficulty, count })
   });
+
+// --- RESULTS APIS ---
+export const apiGetResults = (token: string) => 
+  fetchApi<Result[]>('/results', { headers: { 'Authorization': `Bearer ${token}` } });

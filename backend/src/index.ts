@@ -12,6 +12,7 @@ import questionRoutes from './routes/question.routes';
 import examRoutes from './routes/exam.routes';
 import aiRoutes from './routes/ai.routes';
 import metadataRoutes from './routes/metadata.routes';
+import resultsRoutes from './routes/results.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 3001; // Changed to 3001 to avoid potential conflicts
@@ -55,6 +56,7 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/metadata', metadataRoutes);
+app.use('/api/results', resultsRoutes);
 
 // --- Centralized Error Handling Middleware ---
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
