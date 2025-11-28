@@ -1,7 +1,7 @@
-import { connection } from '../index'; // Assuming connection is exported from index
+import { connection } from '../index';
+import bcrypt from 'bcryptjs';
 
-// NOTE: As per your request, password handling is done in PLAIN TEXT.
-// This is NOT secure and is strongly discouraged.
+const SALT_ROUNDS = 10; // Standard salt rounds for bcrypt
 
 export const getAllUsers = async () => {
     const [rows] = await connection.execute('SELECT id, name, username, role, disabled FROM users');
@@ -21,10 +21,14 @@ export const createUser = async (userData: any) => {
     if (!name || !username || !password || !role) {
         throw new Error('All user fields are required.');
     }
+
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
     try {
         const [result]: any = await connection.execute(
             'INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, ?)',
-            [name, username, password, role]
+            [name, username, hashedPassword, role]
         );
         return { id: result.insertId, name, username, role, disabled: false };
     } catch (error) {
@@ -40,12 +44,16 @@ export const updateUser = async (id: string, userData: any) => {
     if (!name || !username || !password || !role) {
         throw new Error('All user fields are required.');
     }
+
+    // Hash the password before updating
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
     try {
         await connection.execute(
             'UPDATE users SET name = ?, username = ?, password = ?, role = ? WHERE id = ?',
-            [name, username, password, role, id]
+            [name, username, hashedPassword, role, id]
         );
-    } catch (error) {
+    } catch (error) { 
         if ((error as any).code === 'ER_DUP_ENTRY') {
             throw new Error('Username already exists.');
         }
