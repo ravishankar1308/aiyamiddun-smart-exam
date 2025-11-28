@@ -2,12 +2,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { apiGetExam, apiUpdateExam, apiGetMetadata, apiGetQuestions } from '@/lib/api';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 
-export default function EditExamPage({ params }: { params: { id: string } }) {
-    console.log('EditExamPage component rendered. Params:', params);
+export default function EditExamPage() { 
+    const params = useParams();
+    const examId = params.id as string;
+    console.log('EditExamPage component rendered. Exam ID from useParams:', examId);
 
     const [step, setStep] = useState(1);
     const [examDetails, setExamDetails] = useState({
@@ -22,7 +24,6 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
-    const examId = params.id;
 
     const fetchExamData = useCallback(async () => {
         console.log('Calling fetchExamData for examId:', examId);
@@ -43,7 +44,7 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
                 duration_minutes: examData.duration_minutes,
             });
             setSelectedQuestions(examData.questions.map((q: any) => q.id));
-            setMetadata(meta);
+            setMetadata(meta as any);
             setAvailableQuestions(questions);
 
         } catch (err: any) {
@@ -115,7 +116,6 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
                 <h1 className="text-3xl font-bold">Edit Exam</h1>
             </div>
 
-            {/* Step Indicator */}
             <div className="mb-8 flex justify-center">
                 <div className="flex items-center">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>1</div>
@@ -128,7 +128,6 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
 
             {error && <div className="bg-red-100 text-red-700 p-3 rounded-md mb-6">{error}</div>}
 
-            {/* Step 1: Exam Details */}
             {step === 1 && (
                 <div className="space-y-6">
                     <div>
@@ -160,12 +159,10 @@ export default function EditExamPage({ params }: { params: { id: string } }) {
                 </div>
             )}
 
-            {/* Step 2: Add Questions */}
             {step === 2 && (
                 <div>
                     <div className="mb-4">
                         <h2 className="text-2xl font-semibold">Select Questions ({selectedQuestions.length} selected)</h2>
-                        {/* Add filter controls here */}
                     </div>
                     <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-3">
                         {availableQuestions.map((q: any) => (
