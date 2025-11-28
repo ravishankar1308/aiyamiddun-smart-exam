@@ -1,4 +1,3 @@
-
 // lib/api.ts
 
 // The base URL of our Node.js backend
@@ -85,5 +84,5 @@ export const apiSubmitExam = (id, submissionData) => fetchApi(`/exams/${id}/subm
 export const apiGetExamAnalytics = (id) => fetchApi(`/exams/${id}/analytics`);
 
 // --- METADATA APIS ---
-export const apiGetMetadata = () => fetchApi('/metadata');
+export const apiGetMetadata = (key) => fetchApi(`/metadata/${key}`);
 export const apiUpdateMetadata = (key, value) => fetchApi(`/metadata/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
