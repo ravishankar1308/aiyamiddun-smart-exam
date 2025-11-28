@@ -40,23 +40,28 @@ export const createUser = async (userData: any) => {
 };
 
 export const updateUser = async (id: string, userData: any) => {
-    const { name, username, password, role } = userData;
-    if (!name || !username || !password || !role) {
-        throw new Error('All user fields are required.');
+    const { name, password, role } = userData;
+
+    // Base query and parameters
+    let query = 'UPDATE users SET name = ?, role = ?';
+    const params: any[] = [name, role];
+
+    // If a new password is provided, hash it and add it to the query
+    if (password) {
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        query += ', password = ?';
+        params.push(hashedPassword);
     }
 
-    // Hash the password before updating
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    // Finalize the query
+    query += ' WHERE id = ?';
+    params.push(id);
 
     try {
-        await connection.execute(
-            'UPDATE users SET name = ?, username = ?, password = ?, role = ? WHERE id = ?',
-            [name, username, hashedPassword, role, id]
-        );
-    } catch (error) { 
-        if ((error as any).code === 'ER_DUP_ENTRY') {
-            throw new Error('Username already exists.');
-        }
+        await connection.execute(query, params);
+    } catch (error) {
+        // The username cannot be changed, so no duplicate error is expected here.
+        // However, we keep the general error handling.
         throw error;
     }
 };

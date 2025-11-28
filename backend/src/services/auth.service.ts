@@ -12,6 +12,11 @@ export const login = async (username: string, password: string) => {
         throw new Error('User not found');
     }
 
+    // Check if the user account is disabled
+    if (user.disabled) {
+        throw new Error('Your account has been disabled. Please contact an administrator.');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
