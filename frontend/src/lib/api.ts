@@ -1,19 +1,15 @@
 // lib/api.ts
 
-// The base URL of our Node.js backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // --- TYPE DEFINITIONS ---
 
-// A generic success message response
 export interface SuccessMessage {
     message: string;
 }
 
-// A generic response for a successful deletion
 export type DeletionResponse = null;
 
-// User-related types
 export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
 export interface UserProfile {
   id: number;
@@ -25,17 +21,15 @@ export interface UserProfile {
 export interface UserModificationData {
     name: string;
     username: string;
-    password: string; // The backend service requires the password on update as well
+    password: string;
     role: UserRole;
 }
 
-// --- NEW: This interface correctly represents the login response --- 
 export interface LoginResponse {
   token: string;
   user: UserProfile;
 }
 
-// Question-related types
 export type QuestionDifficulty = 'Easy' | 'Medium' | 'Hard';
 export type QuestionStatus = 'pending' | 'approved' | 'rejected';
 export interface Question {
@@ -54,7 +48,6 @@ export interface Question {
 }
 export interface QuestionData extends Omit<Question, 'id' | 'author_id' | 'status' | 'is_disabled' | 'created_at' | 'updated_at'> {}
 
-// Exam-related types
 export interface Exam {
     id: number;
     title: string;
@@ -84,17 +77,9 @@ export interface ExamAnalytics {
     questionStats: Array<{ question_id: number; correct_percentage: number; }>;
 }
 
-// Other types
 export type ApiFilters = Record<string, string | number | boolean>;
 export interface Metadata<T> { key: string; value: T; }
 
-/**
- * A helper function to perform API requests with strong typing.
- * It automatically adds the correct headers and base URL.
- * @param endpoint The API endpoint to call (e.g., '/auth/login').
- * @param options The options for the fetch request (method, body, etc.).
- * @returns The JSON response from the API, typed with a generic.
- */
 async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const headers = { 'Content-Type': 'application/json', ...options.headers };
@@ -115,7 +100,6 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 }
 
 // --- AUTH APIS ---
-// --- FIXED: Now uses the correct LoginResponse type --- 
 export const apiLogin = (username: string, password: string) => 
   fetchApi<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
   

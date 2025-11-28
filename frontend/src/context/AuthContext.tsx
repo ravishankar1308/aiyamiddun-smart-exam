@@ -4,16 +4,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiLogin, apiRegister } from '@/lib/api';
-
-// Define the shape of the user profile
-interface UserProfile {
-  id: number;
-  name: string;
-  username: string;
-  role: 'student' | 'teacher' | 'admin' | 'owner';
-  disabled: boolean;
-}
+import { apiLogin, apiRegister, UserProfile } from '@/lib/api';
 
 // Define a type for the registration data
 interface RegisterData {
@@ -26,6 +17,7 @@ interface RegisterData {
 // Define the context value
 interface AuthContextType {
   user: UserProfile | null;
+  token: string | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
@@ -42,18 +34,22 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true); // Initially true to check for stored user
 
   useEffect(() => {
-    // On component mount, try to load user from local storage
+    // On component mount, try to load user and token from local storage
     try {
       const storedUser = localStorage.getItem('aiyamiddun_user');
-      if (storedUser) {
+      const storedToken = localStorage.getItem('aiyamiddun_token');
+      if (storedUser && storedToken) {
         setUser(JSON.parse(storedUser));
+        setToken(storedToken);
       }
     } catch (error) {
       console.error("Failed to parse user from local storage", error);
       localStorage.removeItem('aiyamiddun_user'); // Clear corrupted data
+      localStorage.removeItem('aiyamiddun_token');
     }
     setLoading(false); // Done checking
   }, []);
@@ -61,9 +57,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const userData = await apiLogin(username, password);
-      setUser(userData);
-      localStorage.setItem('aiyamiddun_user', JSON.stringify(userData));
+      const { token, user } = await apiLogin(username, password);
+      setUser(user);
+      setToken(token);
+      localStorage.setItem('aiyamiddun_user', JSON.stringify(user));
+      localStorage.setItem('aiyamiddun_token', token);
     } finally {
       setLoading(false);
     }
@@ -72,9 +70,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: RegisterData) => {
     setLoading(true);
     try {
-      const newUser = await apiRegister(userData);
-      setUser(newUser);
-      localStorage.setItem('aiyamiddun_user', JSON.stringify(newUser));
+      await apiRegister(userData);
+      await login(userData.username, userData.password);
     } finally {
       setLoading(false);
     }
@@ -82,11 +79,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem('aiyamiddun_user');
+    localStorage.removeItem('aiyamiddun_token');
   };
 
   const value = {
     user,
+    token,
     loading,
     login,
     register,
