@@ -1,5 +1,5 @@
-GEMINI_API_KEY="AIzaSyAzk9MYfGtEPCHXPbQ-UfrQ_uChlgCNs8Q"
-DB_HOST=172.18.0.3
+GEMINI_API_KEY=""
+DB_HOST=
 DB_USER=aiyamiddunexam
 DB_PASSWORD=DstZPcrrTPj2hk8J
 DB_NAME=aiyamiddunexam
