@@ -1,25 +1,49 @@
-import { connection } from '../index';
 
-// WARNING: This is NOT a secure way to handle login.
-// Passwords are in plain text and not hashed.
+import * as jwt from 'jsonwebtoken';
+import { pool } from '../config/database'; // Assuming you have a database configuration
 
-export const login = async (username: string, password: string): Promise<any> => {
-    const [rows]: any = await connection.execute(
-        'SELECT * FROM users WHERE username = ? AND password = ?',
-        [username, password]
-    );
+// This should be in an environment variable in a real application!
+const JWT_SECRET = 'your-super-secret-and-long-key-that-is-at-least-32-characters';
+const JWT_EXPIRES_IN = '1h'; // Token expiration time
 
-    if (rows.length === 0) {
-        throw new Error('Invalid credentials');
+/**
+ * Validates user credentials and generates a JWT if they are correct.
+ * NOTE: This is an insecure implementation that checks passwords in plain text.
+ * @param email - The user's email.
+ * @param password - The user's plain text password.
+ * @returns An object with the token and expiration if successful, otherwise null.
+ */
+export const login = async (email: string, password: string) => {
+    // 1. Find the user by email
+    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+    if (userResult.rows.length === 0) {
+        console.log(`Login attempt failed: No user found for email ${email}`);
+        return null; // User not found
     }
 
-    const user = rows[0];
+    const user = userResult.rows[0];
 
-    if (user.disabled) {
-        throw new Error('Account disabled');
+    // 2. Check the password (insecure plain text comparison)
+    if (user.password !== password) {
+        console.log(`Login attempt failed: Incorrect password for email ${email}`);
+        return null; // Passwords do not match
     }
 
-    // Never return the password, even in an insecure setup
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    // 3. If password is correct, create the JWT payload
+    const payload = {
+        id: user.id,
+        role: user.role, // Assuming your 'users' table has a 'role' column
+    };
+
+    // 4. Sign the JWT
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    console.log(`User ${email} logged in successfully.`);
+
+    // 5. Return the token and expiration information
+    return {
+        token,
+        expiresIn: JWT_EXPIRES_IN,
+    };
 };
