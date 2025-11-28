@@ -1,0 +1,159 @@
+"use strict";
+// lib/api.ts
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.apiUpdateMetadata = exports.apiGetMetadata = exports.apiGetExamAnalytics = exports.apiSubmitExam = exports.apiDeleteExam = exports.apiUpdateExam = exports.apiCreateExam = exports.apiGetExam = exports.apiGetExams = exports.apiDeleteQuestion = exports.apiToggleQuestionDisable = exports.apiUpdateQuestionStatus = exports.apiUpdateQuestion = exports.apiCreateQuestion = exports.apiGetQuestions = exports.apiDeleteUser = exports.apiToggleUserDisable = exports.apiUpdateUser = exports.apiCreateUser = exports.apiGetUsers = exports.apiRegister = exports.apiLogin = void 0;
+// The base URL of our Node.js backend
+var API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+/**
+ * A helper function to perform API requests.
+ * It automatically adds the correct headers and base URL.
+ * @param endpoint The API endpoint to call (e.g., '/auth/login').
+ * @param options The options for the fetch request (method, body, etc.).
+ * @returns The JSON response from the API.
+ */
+function fetchApi(endpoint_1) {
+    return __awaiter(this, arguments, void 0, function (endpoint, options) {
+        var url, headers, config, response, errorData, error_1;
+        if (options === void 0) { options = {}; }
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    url = "".concat(API_BASE_URL).concat(endpoint);
+                    headers = __assign({ 'Content-Type': 'application/json' }, options.headers);
+                    config = __assign(__assign({}, options), { headers: headers });
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 5, , 6]);
+                    return [4 /*yield*/, fetch(url, config)];
+                case 2:
+                    response = _a.sent();
+                    if (!!response.ok) return [3 /*break*/, 4];
+                    return [4 /*yield*/, response.json().catch(function () { return ({ error: 'An unknown API error occurred' }); })];
+                case 3:
+                    errorData = _a.sent();
+                    throw new Error(errorData.error || "API request failed with status ".concat(response.status));
+                case 4:
+                    // If the response has no content (like a 204), return null
+                    if (response.status === 204) {
+                        return [2 /*return*/, null];
+                    }
+                    return [2 /*return*/, response.json()];
+                case 5:
+                    error_1 = _a.sent();
+                    console.error('API Fetch Error:', error_1);
+                    // Re-throw the error so the calling component can handle it
+                    throw error_1;
+                case 6: return [2 /*return*/];
+            }
+        });
+    });
+}
+// --- AUTH APIS ---
+var apiLogin = function (username, password) {
+    return fetchApi('/auth/login', { method: 'POST', body: JSON.stringify({ username: username, password: password }) });
+};
+exports.apiLogin = apiLogin;
+var apiRegister = function (userData) {
+    return fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(userData) });
+};
+exports.apiRegister = apiRegister;
+// --- USER MANAGEMENT APIS ---
+var apiGetUsers = function () { return fetchApi('/users'); };
+exports.apiGetUsers = apiGetUsers;
+var apiCreateUser = function (userData) { return fetchApi('/users', { method: 'POST', body: JSON.stringify(userData) }); };
+exports.apiCreateUser = apiCreateUser;
+var apiUpdateUser = function (id, userData) { return fetchApi("/users/".concat(id), { method: 'PUT', body: JSON.stringify(userData) }); };
+exports.apiUpdateUser = apiUpdateUser;
+var apiToggleUserDisable = function (id) { return fetchApi("/users/".concat(id, "/toggle-disable"), { method: 'PATCH' }); };
+exports.apiToggleUserDisable = apiToggleUserDisable;
+var apiDeleteUser = function (id) { return fetchApi("/users/".concat(id), { method: 'DELETE' }); };
+exports.apiDeleteUser = apiDeleteUser;
+// --- QUESTION APIS ---
+var apiGetQuestions = function (filters) {
+    if (filters === void 0) { filters = {}; }
+    var query = new URLSearchParams(filters).toString();
+    return fetchApi("/questions?".concat(query));
+};
+exports.apiGetQuestions = apiGetQuestions;
+var apiCreateQuestion = function (questionData) { return fetchApi('/questions', { method: 'POST', body: JSON.stringify(questionData) }); };
+exports.apiCreateQuestion = apiCreateQuestion;
+var apiUpdateQuestion = function (id, questionData) { return fetchApi("/questions/".concat(id), { method: 'PUT', body: JSON.stringify(questionData) }); };
+exports.apiUpdateQuestion = apiUpdateQuestion;
+var apiUpdateQuestionStatus = function (id, status) { return fetchApi("/questions/".concat(id, "/status"), { method: 'PATCH', body: JSON.stringify({ status: status }) }); };
+exports.apiUpdateQuestionStatus = apiUpdateQuestionStatus;
+var apiToggleQuestionDisable = function (id) { return fetchApi("/questions/".concat(id, "/toggle-disable"), { method: 'PATCH' }); };
+exports.apiToggleQuestionDisable = apiToggleQuestionDisable;
+var apiDeleteQuestion = function (id) { return fetchApi("/questions/".concat(id), { method: 'DELETE' }); };
+exports.apiDeleteQuestion = apiDeleteQuestion;
+// --- EXAM APIS ---
+var apiGetExams = function (filters) {
+    if (filters === void 0) { filters = {}; }
+    var query = new URLSearchParams(filters).toString();
+    return fetchApi("/exams?".concat(query));
+};
+exports.apiGetExams = apiGetExams;
+var apiGetExam = function (id) { return fetchApi("/exams/".concat(id)); };
+exports.apiGetExam = apiGetExam;
+var apiCreateExam = function (examData) { return fetchApi('/exams', { method: 'POST', body: JSON.stringify(examData) }); };
+exports.apiCreateExam = apiCreateExam;
+var apiUpdateExam = function (id, examData) { return fetchApi("/exams/".concat(id), { method: 'PUT', body: JSON.stringify(examData) }); };
+exports.apiUpdateExam = apiUpdateExam;
+var apiDeleteExam = function (id) { return fetchApi("/exams/".concat(id), { method: 'DELETE' }); };
+exports.apiDeleteExam = apiDeleteExam;
+var apiSubmitExam = function (id, submissionData) { return fetchApi("/exams/".concat(id, "/submit"), { method: 'POST', body: JSON.stringify(submissionData) }); };
+exports.apiSubmitExam = apiSubmitExam;
+var apiGetExamAnalytics = function (id) { return fetchApi("/exams/".concat(id, "/analytics")); };
+exports.apiGetExamAnalytics = apiGetExamAnalytics;
+// --- METADATA APIS ---
+var apiGetMetadata = function () { return fetchApi('/metadata'); };
+exports.apiGetMetadata = apiGetMetadata;
+var apiUpdateMetadata = function (key, value) { return fetchApi("/metadata/".concat(key), { method: 'PUT', body: JSON.stringify({ value: value }) }); };
+exports.apiUpdateMetadata = apiUpdateMetadata;
+//# sourceMappingURL=api.js.map
