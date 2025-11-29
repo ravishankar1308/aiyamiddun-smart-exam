@@ -1,41 +1,40 @@
-import { login } from '../auth.service';
-import { connection } from '../../database';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+// 1. Define top-level mock functions
+const mockDbQuery = jest.fn();
+const mockBcryptCompare = jest.fn();
+const mockJwtSign = jest.fn();
 
-// Mock the external dependencies
+// 2. Mock the modules and provide the mock functions
 jest.mock('../../database', () => ({
     connection: {
-        // The auth service uses `query`, so we mock that
-        query: jest.fn(),
+        query: mockDbQuery,
     },
 }));
+
 jest.mock('bcryptjs', () => ({
-    compare: jest.fn(),
-}));
-jest.mock('jsonwebtoken', () => ({
-    sign: jest.fn(),
+    compare: mockBcryptCompare,
 }));
 
-// Create typed mock functions for easier and safer use in tests
-const mockDbQuery = connection.query as jest.Mock;
-const mockBcryptCompare = bcrypt.compare as jest.Mock;
-const mockJwtSign = jwt.sign as jest.Mock;
+jest.mock('jsonwebtoken', () => ({
+    sign: mockJwtSign,
+}));
+
+// 3. Import the service and types AFTER mocking
+import { login } from '../auth.service';
 
 describe('Auth Service', () => {
 
     beforeEach(() => {
-        // Reset all mocks before each test to ensure a clean slate
+        // Reset all mocks before each test for a clean slate
         mockDbQuery.mockReset();
         mockBcryptCompare.mockReset();
         mockJwtSign.mockReset();
-        // Also, mock console methods to keep test output clean
+        // Spy on console methods to keep test output clean
         jest.spyOn(console, 'warn').mockImplementation(() => {});
         jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
-        // Restore console mocks after each test
+        // Restore any spied-on objects
         jest.restoreAllMocks();
     });
 
@@ -48,37 +47,36 @@ describe('Auth Service', () => {
         };
         const mockToken = 'mocktoken';
 
-        // Setup mock return values
+        // Configure mock implementations
         mockDbQuery.mockResolvedValue([[mockUser]]);
         mockBcryptCompare.mockResolvedValue(true);
         mockJwtSign.mockReturnValue(mockToken);
 
         const result = await login('testuser', 'password');
 
-        // Assertions
+        // Assert the outcome
         expect(result).toEqual({
             token: mockToken,
             user: { id: 1, username: 'testuser', role: 'user' },
         });
         expect(mockDbQuery).toHaveBeenCalledWith('SELECT * FROM users WHERE username = ?', ['testuser']);
         expect(mockBcryptCompare).toHaveBeenCalledWith('password', 'hashedpassword');
-        // Correctly check the JWT secret from environment variables
+        // Verify JWT signing uses the correct secret from environment variables
         expect(mockJwtSign).toHaveBeenCalledWith({ id: 1, role: 'user' }, process.env.JWT_SECRET, { expiresIn: 3600 });
     });
 
-    it('should return null if user is not found', async () => {
-        mockDbQuery.mockResolvedValue([[]]); // Simulate no user found
+    it('should return null if the user is not found', async () => {
+        mockDbQuery.mockResolvedValue([[]]); // Simulate DB returning no rows
 
         const result = await login('nonexistentuser', 'password');
 
         expect(result).toBeNull();
         expect(mockDbQuery).toHaveBeenCalledWith('SELECT * FROM users WHERE username = ?', ['nonexistentuser']);
-        // Ensure expensive operations are not called if the user doesn't exist
-        expect(mockBcryptCompare).not.toHaveBeenCalled();
-        expect(mockJwtSign).not.toHaveBeenCalled();
+        expect(mockBcryptCompare).not.toHaveBeenCalled(); // Should not attempt to compare password
+        expect(mockJwtSign).not.toHaveBeenCalled(); // Should not sign a token
     });
 
-    it('should return null if password does not match', async () => {
+    it('should return null if the password does not match', async () => {
         const mockUser = { id: 1, username: 'testuser', password: 'hashedpassword', role: 'user' };
         mockDbQuery.mockResolvedValue([[mockUser]]);
         mockBcryptCompare.mockResolvedValue(false); // Simulate password mismatch
@@ -91,11 +89,10 @@ describe('Auth Service', () => {
         expect(mockJwtSign).not.toHaveBeenCalled();
     });
 
-    it('should throw an error if the database query fails', async () => {
-        const errorMessage = 'Database error';
+    it('should throw a user-friendly error if the database query fails', async () => {
+        const errorMessage = 'Database connection lost';
         mockDbQuery.mockRejectedValue(new Error(errorMessage));
 
-        // Ensure the service function translates the error into a user-friendly message
         await expect(login('testuser', 'password')).rejects.toThrow('Could not process login request.');
     });
 });

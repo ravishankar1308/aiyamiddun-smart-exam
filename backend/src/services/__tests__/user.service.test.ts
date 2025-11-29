@@ -1,3 +1,19 @@
+// 1. Define top-level mock functions
+const mockDbExecute = jest.fn();
+const mockBcryptHash = jest.fn();
+
+// 2. Mock the modules and provide the mock functions
+jest.mock('../../database', () => ({
+    connection: {
+        execute: mockDbExecute,
+    },
+}));
+
+jest.mock('bcryptjs', () => ({
+    hash: mockBcryptHash,
+}));
+
+// 3. Import the service and types AFTER mocking
 import {
     getAllUsers,
     findUserByUsername,
@@ -7,35 +23,17 @@ import {
     deleteUser,
     User,
 } from '../user.service';
-import { connection } from '../../database';
-import bcrypt from 'bcryptjs';
-
-// Mock the database connection module
-jest.mock('../../database', () => ({
-    connection: {
-        execute: jest.fn(),
-    },
-}));
-
-// Mock the bcryptjs library
-jest.mock('bcryptjs', () => ({
-    hash: jest.fn(),
-}));
-
-// Create typed mock functions for easier use in tests
-const mockDbExecute = connection.execute as jest.Mock;
-const mockBcryptHash = bcrypt.hash as jest.Mock;
 
 describe('User Service', () => {
 
     beforeEach(() => {
-        // Reset mocks before each test to ensure isolation
+        // Reset mocks before each test for isolation
         mockDbExecute.mockReset();
         mockBcryptHash.mockReset();
     });
 
     describe('getAllUsers', () => {
-        it('should return all users', async () => {
+        it('should return all users from the database', async () => {
             const mockUsers: User[] = [
                 { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false },
                 { id: 2, name: 'User', username: 'user', role: 'user', disabled: false },
@@ -50,7 +48,7 @@ describe('User Service', () => {
     });
 
     describe('findUserByUsername', () => {
-        it('should return a user by username', async () => {
+        it('should return a user object if found', async () => {
             const mockUser: User = { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false };
             mockDbExecute.mockResolvedValue([[mockUser]]);
 
@@ -60,7 +58,7 @@ describe('User Service', () => {
             expect(mockDbExecute).toHaveBeenCalledWith('SELECT * FROM users WHERE username = ?', ['admin']);
         });
 
-        it('should return null if user not found', async () => {
+        it('should return null if the user is not found', async () => {
             mockDbExecute.mockResolvedValue([[]]);
             const result = await findUserByUsername('nonexistent');
             expect(result).toBeNull();
@@ -68,7 +66,7 @@ describe('User Service', () => {
     });
 
     describe('createUser', () => {
-        it('should create a new user and return it', async () => {
+        it('should successfully create a new user', async () => {
             const newUser = { name: 'New User', username: 'newuser', password: 'password', role: 'user' as const };
             const hashedPassword = 'hashedpassword';
             mockBcryptHash.mockResolvedValue(hashedPassword);
@@ -84,18 +82,17 @@ describe('User Service', () => {
             );
         });
 
-        it('should throw an error if username already exists', async () => {
+        it('should throw a specific error if the username already exists', async () => {
             const newUser = { name: 'New User', username: 'existinguser', password: 'password', role: 'user' as const };
             mockBcryptHash.mockResolvedValue('hashedpassword');
-            // Simulate a database duplicate entry error
-            mockDbExecute.mockRejectedValue({ code: 'ER_DUP_ENTRY' });
+            mockDbExecute.mockRejectedValue({ code: 'ER_DUP_ENTRY' }); // Simulate DB error
 
             await expect(createUser(newUser)).rejects.toThrow('Username already exists.');
         });
     });
 
     describe('updateUser', () => {
-        it('should update a user without changing the password', async () => {
+        it('should update user data without the password', async () => {
             const updatedData = { name: 'Updated User', role: 'admin' as const };
             await updateUser('1', updatedData);
 
@@ -106,7 +103,7 @@ describe('User Service', () => {
             expect(mockBcryptHash).not.toHaveBeenCalled();
         });
 
-        it('should update a user including the password', async () => {
+        it('should update user data including a new password', async () => {
             const updatedData = { name: 'Updated User', password: 'newpassword', role: 'admin' as const };
             const hashedPassword = 'hashednewpassword';
             mockBcryptHash.mockResolvedValue(hashedPassword);
@@ -122,9 +119,9 @@ describe('User Service', () => {
     });
 
     describe('toggleUserStatus', () => {
-        it('should disable an enabled user', async () => {
-            mockDbExecute.mockResolvedValueOnce([[{ disabled: false }]]); // Mock for the SELECT query
-            mockDbExecute.mockResolvedValueOnce(undefined); // Mock for the UPDATE query
+        it('should correctly disable an enabled user', async () => {
+            mockDbExecute.mockResolvedValueOnce([[{ disabled: false }]]); // Mock SELECT
+            mockDbExecute.mockResolvedValueOnce(undefined); // Mock UPDATE
 
             const result = await toggleUserStatus('1');
 
@@ -133,9 +130,9 @@ describe('User Service', () => {
             expect(mockDbExecute).toHaveBeenCalledWith('UPDATE users SET disabled = ? WHERE id = ?', [true, '1']);
         });
 
-        it('should enable a disabled user', async () => {
-            mockDbExecute.mockResolvedValueOnce([[{ disabled: true }]]);
-            mockDbExecute.mockResolvedValueOnce(undefined);
+        it('should correctly enable a disabled user', async () => {
+            mockDbExecute.mockResolvedValueOnce([[{ disabled: true }]]); // Mock SELECT
+            mockDbExecute.mockResolvedValueOnce(undefined); // Mock UPDATE
 
             const result = await toggleUserStatus('1');
 
@@ -145,13 +142,13 @@ describe('User Service', () => {
     });
 
     describe('deleteUser', () => {
-        it('should delete a user', async () => {
+        it('should successfully delete a user', async () => {
             mockDbExecute.mockResolvedValue([{ affectedRows: 1 }]);
             await deleteUser('1');
             expect(mockDbExecute).toHaveBeenCalledWith('DELETE FROM users WHERE id = ?', ['1']);
         });
 
-        it('should throw an error if user to delete is not found', async () => {
+        it('should throw an error if the user to delete is not found', async () => {
             mockDbExecute.mockResolvedValue([{ affectedRows: 0 }]);
             await expect(deleteUser('999')).rejects.toThrow('User not found');
         });
