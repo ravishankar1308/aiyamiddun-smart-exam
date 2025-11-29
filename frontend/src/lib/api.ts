@@ -1,186 +1,152 @@
-// lib/api.ts
+import { getToken } from './auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// --- TYPE DEFINITIONS ---
+async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const token = getToken();
+    const headers = new Headers(options.headers || {});
+    if (token) {
+        headers.append('Authorization', `Bearer ${token}`);
+    }
+    if (!headers.has('Content-Type') && options.body) {
+        headers.append('Content-Type', 'application/json');
+    }
+
+    const fullUrl = `${API_URL}${path}`;
+
+    try {
+        const response = await fetch(fullUrl, { ...options, headers });
+
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+            throw new Error(errorBody.error || `Request failed with status ${response.status}`);
+        }
+        
+        if (response.status === 204) {
+            return {} as T;
+        }
+
+        return await response.json() as T;
+
+    } catch (error: any) {
+        console.error(`API call to ${fullUrl} failed:`, error);
+        throw error;
+    }
+}
+
+// ===== Type Definitions =====
+
+export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
+
+export interface User {
+    id: number;
+    name: string;
+    username: string;
+    role: UserRole;
+    disabled: boolean;
+    createdAt: string;
+}
+
+export interface Grade {
+    id: number;
+    name: string;
+}
+
+export interface Subject {
+    id: number;
+    name: string;
+    grade_id: number;
+}
+
+export interface Section {
+    id: number;
+    name: string;
+    subject_id: number;
+}
+
+export interface QuestionType {
+    id: number;
+    name: string;
+}
+
+export interface Difficulty {
+    id: number;
+    name: string;
+}
+
+export interface AllMetadata {
+    grades: Grade[];
+    subjects: Subject[];
+    sections: Section[];
+    questionTypes: QuestionType[];
+    difficulties: Difficulty[];
+}
+
+export interface Question {
+    id: number;
+    text: string;
+    imageUrl?: string | null;
+    options?: any; // JSON field
+    correct_option?: number | null;
+    subject_id: number;
+    section_id?: number | null;
+    question_type_id: number;
+    difficulty_id: number;
+    marks: number;
+    author_id: number;
+    status: 'pending' | 'approved' | 'rejected';
+    is_disabled: boolean;
+    created_at: string;
+    updated_at: string;
+
+    // Optional joined fields
+    subject_name?: string;
+    grade_name?: string;
+    section_name?: string;
+    question_type_name?: string;
+    difficulty_name?: string;
+    author_username?: string;
+}
+
+
+export interface LoginResponse {
+    token: string;
+    user: User;
+}
+
+export interface DeletionResponse {
+    message: string;
+}
 
 export interface SuccessMessage {
     message: string;
 }
 
-export type DeletionResponse = null;
 
-export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
-export interface UserProfile {
-  id: number;
-  name: string;
-  username: string;
-  role: UserRole;
-  disabled: boolean;
-}
-export interface UserModificationData {
-    name: string;
-    username: string;
-    password: string;
-    role: UserRole;
-}
+// ===== API Endpoint Functions =====
 
-export interface LoginResponse {
-  token: string;
-  user: UserProfile;
-}
+// Auth
+export const apiLogin = (credentials: object) => fetchApi<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
+export const apiFetchCurrentUser = () => fetchApi<{ user: User }>('/auth/me');
 
-export type QuestionDifficulty = 'Easy' | 'Medium' | 'Hard';
-export type QuestionStatus = 'pending' | 'approved' | 'rejected';
-export interface Question {
-    id: number;
-    subject_id: number;
-    topic_id: number;
-    difficulty: QuestionDifficulty;
-    question_text: string;
-    options: string[];
-    correct_option: number;
-    author_id: number;
-    status: QuestionStatus;
-    is_disabled: boolean;
-    created_at: string;
-    updated_at: string;
-}
-export interface QuestionData extends Omit<Question, 'id' | 'author_id' | 'status' | 'is_disabled' | 'created_at' | 'updated_at'> {}
-
-export interface Exam {
-    id: number;
-    title: string;
-    description: string;
-    subject_id: number;
-    author_id: number;
-    created_at: string;
-    updated_at: string;
-}
-export interface ExamData extends Omit<Exam, 'id' | 'author_id' | 'created_at' | 'updated_at'> {
-    question_ids: number[];
-}
-export interface FullExam extends Exam {
-    questions: Question[];
-}
-export interface ExamSubmissionData {
-    answers: Array<{ question_id: number; selected_option: number; }>;
-}
-export interface ExamResults {
-    score: number;
-    total: number;
-}
-export interface ExamAnalytics {
-    examId: number;
-    averageScore: number;
-    submissionCount: number;
-    questionStats: Array<{ question_id: number; correct_percentage: number; }>;
-}
-
-export interface Result {
-    id: number;
-    score: number;
-    submitted_at: string;
-    student_name: string;
-    exam_title: string;
-    total_marks: number;
-}
-
-export type ApiFilters = Record<string, string | number | boolean>;
-export interface Metadata<T> { key: string; value: T; }
-
-async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  const headers: Record<string, string> = { 
-    'Content-Type': 'application/json', 
-    ...options.headers 
-  };
-
-  // Get token from localStorage if it exists
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('aiyamiddun_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-
-  const config: RequestInit = { ...options, headers };
-  
-  try {
-    const response = await fetch(url, config);
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'An unknown API error occurred' }));
-      throw new Error(errorData.error || `API request failed with status ${response.status}`);
-    }
-    if (response.status === 204) return null as T;
-    return response.json();
-  } catch (error) {
-    console.error('API Fetch Error:', error);
-    throw error;
-  }
-}
-
-// --- AUTH APIS ---
-export const apiLogin = (username: string, password: string) => 
-  fetchApi<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
-  
-export const apiRegister = (userData: UserModificationData) => 
-  fetchApi<UserProfile>('/auth/register', { method: 'POST', body: JSON.stringify(userData) });
-
-// --- USER MANAGEMENT APIS ---
-export const apiGetUsers = () => fetchApi<UserProfile[]>('/users');
-export const apiCreateUser = (userData: UserModificationData) => fetchApi<UserProfile>('/users', { method: 'POST', body: JSON.stringify(userData) });
-export const apiUpdateUser = (id: string | number, userData: UserModificationData) => fetchApi<SuccessMessage>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) });
-export const apiToggleUserDisable = (id: string | number) => fetchApi<SuccessMessage>(`/users/${id}/toggle-disable`, { method: 'PATCH' });
+// Users
+export const apiGetAllUsers = () => fetchApi<{ users: User[] }>('/users');
+export const apiCreateUser = (userData: Partial<User>) => fetchApi<User>('/users', { method: 'POST', body: JSON.stringify(userData) });
+export const apiUpdateUser = (id: string | number, userData: Partial<User>) => fetchApi<User>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) });
 export const apiDeleteUser = (id: string | number) => fetchApi<DeletionResponse>(`/users/${id}`, { method: 'DELETE' });
+export const apiToggleUserDisable = (id: string | number) => fetchApi<SuccessMessage>(`/users/${id}/toggle-disable`, { method: 'PATCH' });
 
-// --- QUESTION APIS ---
-export const apiGetQuestions = (filters: ApiFilters = {}) => {
-  const query = new URLSearchParams(filters as Record<string, string>).toString();
-  return fetchApi<Question[]>(`/questions?${query}`);
+// Metadata
+export const apiGetAllMetadata = () => fetchApi<AllMetadata>('/metadata/all');
+
+// Questions
+export const apiGetAllQuestions = (filters: Record<string, string> = {}) => {
+    const query = new URLSearchParams(filters).toString();
+    return fetchApi<Question[]>(`/questions?${query}`);
 };
 export const apiGetQuestion = (id: string | number) => fetchApi<Question>(`/questions/${id}`);
-export const apiCreateQuestion = (questionData: QuestionData) => fetchApi<Question>('/questions', { method: 'POST', body: JSON.stringify(questionData) });
-export const apiUpdateQuestion = (id: string | number, questionData: Partial<QuestionData>) => fetchApi<SuccessMessage>(`/questions/${id}`, { method: 'PUT', body: JSON.stringify(questionData) });
-export const apiUpdateQuestionStatus = (id: string | number, status: QuestionStatus) => fetchApi<SuccessMessage>(`/questions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const apiCreateQuestion = (questionData: Partial<Question>) => fetchApi<Question>('/questions', { method: 'POST', body: JSON.stringify(questionData) });
+export const apiUpdateQuestion = (id: string | number, questionData: Partial<Question>) => fetchApi<Question>(`/questions/${id}`, { method: 'PUT', body: JSON.stringify(questionData) });
+export const apiUpdateQuestionStatus = (id: string | number, status: string) => fetchApi<SuccessMessage>(`/questions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const apiToggleQuestionDisable = (id: string | number) => fetchApi<SuccessMessage>(`/questions/${id}/toggle-disable`, { method: 'PATCH' });
 export const apiDeleteQuestion = (id: string | number) => fetchApi<DeletionResponse>(`/questions/${id}`, { method: 'DELETE' });
-
-// --- EXAM APIS ---
-export const apiGetExams = (filters: ApiFilters = {}) => {
-  const query = new URLSearchParams(filters as Record<string, string>).toString();
-  return fetchApi<Exam[]>(`/exams?${query}`);
-};
-export const apiGetExam = (id: string | number) => fetchApi<FullExam>(`/exams/${id}`);
-export const apiCreateExam = (examData: ExamData) => fetchApi<Exam>('/exams', { method: 'POST', body: JSON.stringify(examData) });
-export const apiUpdateExam = (id: string | number, examData: Partial<ExamData>) => fetchApi<SuccessMessage>(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(examData) });
-export const apiDeleteExam = (id: string | number) => fetchApi<DeletionResponse>(`/exams/${id}`, { method: 'DELETE' });
-export const apiSubmitExam = (id: string | number, submissionData: ExamSubmissionData) => fetchApi<ExamResults>(`/exams/${id}/submit`, { method: 'POST', body: JSON.stringify(submissionData) });
-export const apiGetExamAnalytics = (id: string | number) => fetchApi<ExamAnalytics>(`/exams/${id}/analytics`);
-
-// --- METADATA APIS ---
-export const apiGetMetadata = async <T>(key: string): Promise<T[]> => {
-    const result = await fetchApi<Metadata<T[]>>(`/metadata/${key}`);
-    // The components expect an array to map over. If the API returns nothing
-    // or the value is null, we default to an empty array to prevent runtime errors.
-    return result?.value || [];
-};
-export const apiUpdateMetadata = <T>(key: string, value: T) => fetchApi<Metadata<T>>(`/metadata/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
-
-// --- AI APIS ---
-export const apiGenerateQuestions = (topic: string, difficulty: QuestionDifficulty, count: number) => 
-  fetchApi<{ questions: QuestionData[] }>('/ai/generate-questions', { 
-    method: 'POST', 
-    body: JSON.stringify({ topic, difficulty, count })
-  });
-
-export const apiGenerateExamDraft = (topic: string, difficulty: QuestionDifficulty, questionCount: number) => 
-  fetchApi<{ title: string; description: string; questions: QuestionData[] }>('/ai/generate-exam-draft', { 
-    method: 'POST', 
-    body: JSON.stringify({ topic, difficulty, questionCount })
-  });
-
-// --- RESULTS APIS ---
-export const apiGetResults = () => 
-  fetchApi<Result[]>('/results');
