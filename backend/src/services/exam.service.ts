@@ -53,7 +53,9 @@ export const createExam = async (examConfig: any, user: AuthenticatedUser) => {
         throw new Error('Missing required exam configuration fields.');
     }
 
-    const trx = await connection.beginTransaction();
+    const trx = await connection.getConnection();
+    await trx.beginTransaction();
+
     try {
         const snapshotQuestions: any[] = [];
         // This loop builds the question set based on requirements
@@ -99,6 +101,8 @@ export const createExam = async (examConfig: any, user: AuthenticatedUser) => {
         await trx.rollback();
         console.error("Error creating exam:", error);
         throw error; // Re-throw the error to be handled by the controller
+    } finally {
+        trx.release();
     }
 };
 
@@ -170,4 +174,28 @@ export const getExamResults = async (examId: number) => {
     `;
     const [results] = await connection.execute(query, [examId]);
     return results;
+};
+
+export const getExamAnalytics = async (examId: number) => {
+    const results = await getExamResults(examId);
+    if (!results || results.length === 0) {
+        return {
+            examId,
+            averageScore: 0,
+            submissionCount: 0,
+            questionStats: [],
+        };
+    }
+
+    const submissionCount = results.length;
+    const totalScore = results.reduce((acc, r) => acc + r.score, 0);
+    const averageScore = totalScore / submissionCount;
+
+    // This is a simplified version; real analytics would be more complex
+    return {
+        examId,
+        averageScore,
+        submissionCount,
+        questionStats: [], // Placeholder for more detailed stats
+    };
 };

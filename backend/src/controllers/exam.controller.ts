@@ -1,6 +1,14 @@
 import { Request, Response } from 'express';
 import * as examService from '../services/exam.service';
 
+// Add this interface to extend the Express Request object
+interface AuthenticatedRequest extends Request {
+    user?: {
+        id: number;
+        role: string;
+    };
+}
+
 export const getAllExams = async (req: Request, res: Response) => {
     try {
         const exams = await examService.getAllExams(req.query);
@@ -14,7 +22,7 @@ export const getAllExams = async (req: Request, res: Response) => {
 export const getExamById = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
-        const exam = await examService.getExamById(id);
+        const exam = await examService.getExamById(parseInt(id));
         res.json(exam);
     } catch (error) {
         console.error(`Error fetching exam ${id}:`, error);
@@ -25,9 +33,12 @@ export const getExamById = async (req: Request, res: Response) => {
     }
 };
 
-export const createExam = async (req: Request, res: Response) => {
+export const createExam = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const newExam = await examService.createExam(req.body);
+        if (!req.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+        const newExam = await examService.createExam(req.body, req.user);
         res.status(201).json(newExam);
     } catch (error) {
         console.error('Error creating exam:', error);
@@ -38,7 +49,7 @@ export const createExam = async (req: Request, res: Response) => {
 export const updateExam = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
-        const updatedExam = await examService.updateExam(id, req.body);
+        const updatedExam = await examService.updateExam(parseInt(id), req.body);
         res.json(updatedExam);
     } catch (error) {
         console.error(`Error updating exam ${id}:`, error);
@@ -52,7 +63,7 @@ export const updateExam = async (req: Request, res: Response) => {
 export const deleteExam = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
-        await examService.deleteExam(id);
+        await examService.deleteExam(parseInt(id));
         res.status(204).send();
     } catch (error) {
         console.error(`Error deleting exam ${id}:`, error);
@@ -63,16 +74,16 @@ export const deleteExam = async (req: Request, res: Response) => {
     }
 };
 
-export const submitExam = async (req: Request, res: Response) => {
+export const submitExam = async (req: AuthenticatedRequest, res: Response) => {
     const { id: examId } = req.params;
-    const { studentName, studentUsername, answers } = req.body;
+    const { answers } = req.body;
 
-    if (!studentUsername || !answers) {
-        return res.status(400).json({ error: 'Student info and answers are required.' });
+    if (!req.user || !answers) {
+        return res.status(400).json({ error: 'User and answers are required.' });
     }
 
     try {
-        const result = await examService.submitExam(examId, studentName, studentUsername, answers);
+        const result = await examService.submitExam(parseInt(examId), req.user.id, answers);
         res.status(201).json(result);
     } catch (error) {
         console.error(`Error submitting exam ${examId}:`, error);
@@ -86,7 +97,7 @@ export const submitExam = async (req: Request, res: Response) => {
 export const getExamAnalytics = async (req: Request, res: Response) => {
     const { id: examId } = req.params;
     try {
-        const analytics = await examService.getExamAnalytics(examId);
+        const analytics = await examService.getExamAnalytics(parseInt(examId));
         res.json(analytics);
     } catch (error) {
         console.error(`Error fetching analytics for exam ${examId}:`, error);
