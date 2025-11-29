@@ -1,74 +1,73 @@
+
 import { connection } from '../database';
 
-interface MetadataSchema {
-    grades: any[];
-    subjects: any[];
-    sections: any[];
-    questionTypes: any[];
-    difficulties: any[];
-    roles: any[];
-    questionStatuses: any[];
-}
-
-const getDefaultMetadata = (): MetadataSchema => ({
-    grades: [{ id: 1, name: 'Grade 12', isActive: true}],
-    subjects: [{ id: 1, name: 'Physics', isActive: true}],
-    sections: [{ id: 1, name: 'Section A', isActive: true}],
-    questionTypes: [{ id: 1, name: 'Multiple Choice', isActive: true}],
-    difficulties: [],
-    roles: [],
-    questionStatuses: [],
-});
-
-const readMetadataStore = async (): Promise<Partial<MetadataSchema>> => {
+const query = async (sql: string, params: any[] = []) => {
     try {
-        const [rows] = await connection.query('SELECT value FROM metadata WHERE `key` = ?', ['METADATA_STORE']);
-        const data = rows as any[];
-        if (data.length > 0 && data[0].value) {
-            const storedData = JSON.parse(data[0].value);
-            return { ...getDefaultMetadata(), ...storedData };
-        }
-        return getDefaultMetadata();
+        const [rows] = await connection.query(sql, params);
+        return rows as any[];
     } catch (error) {
-        console.error("Error reading metadata store, returning default metadata:", error);
-        return getDefaultMetadata();
+        console.error(`Database query failed: ${sql}`, error);
+        throw new Error('Database query failed.');
     }
 };
 
-// This function is now more robust and does not depend on a UNIQUE index.
-const writeMetadataStore = async (data: Partial<MetadataSchema>): Promise<void> => {
-    try {
-        const jsonData = JSON.stringify(data);
-        const key = 'METADATA_STORE';
+export const getAllMetadata = async () => {
+    const [grades, subjects, sections, questionTypes, difficulties, roles, questionStatuses] = await Promise.all([
+        query('SELECT * FROM grades'),
+        query('SELECT * FROM subjects'),
+        query('SELECT * FROM sections'),
+        query('SELECT * FROM question_types'),
+        query('SELECT * FROM difficulties'),
+        query('SELECT * FROM roles'),
+        query('SELECT * FROM question_statuses'),
+    ]);
 
-        // 1. Check if the key already exists.
-        const [rows] = await connection.query('SELECT `key` FROM metadata WHERE `key` = ?', [key]);
-        const existing = rows as any[];
+    return {
+        grades,
+        subjects,
+        sections,
+        questionTypes,
+        difficulties,
+        roles,
+        questionStatuses
+    };
+};
 
-        // 2. Perform either an UPDATE or an INSERT.
-        if (existing.length > 0) {
-            await connection.query('UPDATE metadata SET `value` = ? WHERE `key` = ?', [jsonData, key]);
-        } else {
-            await connection.query('INSERT INTO metadata (`key`, `value`) VALUES (?, ?)', [key, jsonData]);
-        }
-    } catch (error) {
-        console.error("Error writing metadata store:", error);
-        throw new Error('Failed to write metadata to the database.');
+export const getMetadata = async (key: string) => {
+    // A simple mapping from a URL-friendly key to a table name.
+    const keyToTableMap: Record<string, string> = {
+        grades: 'grades',
+        subjects: 'subjects',
+        sections: 'sections',
+        questionTypes: 'question_types',
+        difficulties: 'difficulties',
+        roles: 'roles',
+        questionStatuses: 'question_statuses'
+    };
+
+    const tableName = keyToTableMap[key];
+
+    if (!tableName) {
+        throw new Error(`Invalid metadata key: ${key}`);
     }
+
+    return await query(`SELECT * FROM ${tableName}`);
 };
 
-export const getAllMetadata = async (): Promise<Partial<MetadataSchema>> => {
-    return await readMetadataStore();
-};
+// This function now assumes you're updating a specific table, not a JSON blob.
+// This is a simplified example. A real implementation would be more complex.
+export const updateMetadata = async (key: string, value: any) => {
+    const tableName = key.endsWith('s') ? key.slice(0, -1) : key;
+    const table = `${tableName}s`;
+    // This is highly simplified. A real-world scenario would need more robust logic.
+    // For example, this doesn't handle creating *new* metadata items, just updating existing ones.
+    // It also assumes 'value' is an object with an 'id' and other fields to update.
+    if (value && value.id) {
+        const { id, ...fields } = value;
+        const setClause = Object.keys(fields).map(field => `${field} = ?`).join(', ');
+        const params = [...Object.values(fields), id];
+        await query(`UPDATE ${table} SET ${setClause} WHERE id = ?`, params);
+    }
 
-export const getMetadata = async (key: string): Promise<any> => {
-    const allMetadata = await readMetadataStore();
-    return allMetadata[key];
-};
-
-export const updateMetadata = async (key: string, value: any): Promise<{ key: string; value: any }> => {
-    const allMetadata = await readMetadataStore();
-    allMetadata[key] = value;
-    await writeMetadataStore(allMetadata);
-    return { key, value };
+    return getMetadata(key);
 };

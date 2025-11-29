@@ -1,17 +1,19 @@
+
 import { Router } from 'express';
 import { getAllMetadata, getMetadata, updateMetadata } from '../controllers/metadata.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { protect, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Anyone who is logged in can get all metadata
-router.get('/', authMiddleware, getAllMetadata);
+// Public route to get all metadata, useful for general info
+router.get('/all', getAllMetadata);
 
-// Anyone who is logged in can get a specific metadata key
-router.get('/:key', authMiddleware, getMetadata);
+// Route to get a specific metadata key, e.g., /api/metadata/grades
+// Protected so only logged-in users can access metadata
+router.get('/:key', protect, getMetadata);
 
-// Anyone who is logged in can update a metadata key. 
-// The adminOrOwnerMiddleware has been removed as requested.
-router.put('/:key', authMiddleware, updateMetadata);
+// Route to update a metadata key
+// Restricted to admins and owners to prevent unauthorized changes
+router.put('/:key', protect, authorize('admin', 'owner'), updateMetadata);
 
 export default router;
