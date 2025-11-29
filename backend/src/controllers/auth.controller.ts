@@ -23,3 +23,23 @@ export const login = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Could not process login request.' });
     }
 };
+
+export const register = async (req: Request, res: Response) => {
+    const { username, password, email, role } = req.body;
+
+    if (!username || !password || !email) {
+        return res.status(400).json({ error: 'Username, password, and email are required.' });
+    }
+
+    try {
+        const newUser = await authService.register(username, password, email, role);
+        res.status(201).json(newUser);
+    } catch (error) {
+        console.error('Registration error:', (error as Error).message);
+        // Check for specific error messages from the service
+        if ((error as Error).message === 'Username already exists.') {
+            return res.status(409).json({ error: (error as Error).message });
+        }
+        res.status(500).json({ error: 'Could not process registration request.' });
+    }
+};
