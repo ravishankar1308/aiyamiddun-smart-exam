@@ -7,7 +7,7 @@ declare global {
         id: number;
         name: string;
         username: string;
-        role: string;
+        role: "student" | "teacher" | "admin" | "owner";
         disabled: boolean;
         created_at: Date;
         updated_at: Date;
