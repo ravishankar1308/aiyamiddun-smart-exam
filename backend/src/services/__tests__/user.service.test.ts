@@ -35,21 +35,21 @@ describe('User Service', () => {
     describe('getAllUsers', () => {
         it('should return all users from the database', async () => {
             const mockUsers: User[] = [
-                { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false, created_at: new Date(), updated_at: new Date(), last_login: null },
-                { id: 2, name: 'User', username: 'user', role: 'user', disabled: false, created_at: new Date(), updated_at: new Date(), last_login: null },
+                { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false, createdAt: new Date() },
+                { id: 2, name: 'User', username: 'user', role: 'student', disabled: false, createdAt: new Date() },
             ];
             mockDbExecute.mockResolvedValue([mockUsers]);
 
             const result = await getAllUsers();
 
             expect(result).toEqual(mockUsers);
-            expect(mockDbExecute).toHaveBeenCalledWith('SELECT id, name, username, role, disabled FROM users');
+            expect(mockDbExecute).toHaveBeenCalledWith('SELECT id, name, username, role, disabled, createdAt FROM users');
         });
     });
 
     describe('findUserByUsername', () => {
         it('should return a user object if found', async () => {
-            const mockUser: User = { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false, created_at: new Date(), updated_at: new Date(), last_login: null };
+            const mockUser: User = { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false, createdAt: new Date() };
             mockDbExecute.mockResolvedValue([[mockUser]]);
 
             const result = await findUserByUsername('admin');
@@ -67,23 +67,29 @@ describe('User Service', () => {
 
     describe('createUser', () => {
         it('should successfully create a new user', async () => {
-            const newUser = { name: 'New User', username: 'newuser', password: 'password', role: 'user' as const };
+            const newUser = { name: 'New User', username: 'newuser', password: 'password', role: 'student' as const };
             const hashedPassword = 'hashedpassword';
+            const mockDate = new Date();
             mockBcryptHash.mockResolvedValue(hashedPassword);
-            mockDbExecute.mockResolvedValue([{ insertId: 3 }]);
+            mockDbExecute.mockResolvedValue([{ insertId: 3 }, []]); // Mock INSERT and SELECT
+
+            // Mock the SELECT call that happens after the INSERT
+            mockDbExecute.mockResolvedValueOnce([{ insertId: 3 }])
+                         .mockResolvedValueOnce([[{ id: 3, name: 'New User', username: 'newuser', role: 'student', disabled: false, createdAt: mockDate }]]);
+
 
             const result = await createUser(newUser);
 
-            expect(result).toEqual({ id: 3, name: 'New User', username: 'newuser', role: 'user', disabled: false });
+            expect(result).toEqual({ id: 3, name: 'New User', username: 'newuser', role: 'student', disabled: false, createdAt: mockDate });
             expect(mockBcryptHash).toHaveBeenCalledWith('password', 10);
             expect(mockDbExecute).toHaveBeenCalledWith(
                 'INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, ?)',
-                ['New User', 'newuser', hashedPassword, 'user']
+                ['New User', 'newuser', hashedPassword, 'student']
             );
         });
 
         it('should throw a specific error if the username already exists', async () => {
-            const newUser = { name: 'New User', username: 'existinguser', password: 'password', role: 'user' as const };
+            const newUser = { name: 'New User', username: 'existinguser', password: 'password', role: 'student' as const };
             mockBcryptHash.mockResolvedValue('hashedpassword');
             mockDbExecute.mockRejectedValue({ code: 'ER_DUP_ENTRY' }); // Simulate DB error
 
@@ -112,7 +118,7 @@ describe('User Service', () => {
 
             expect(mockBcryptHash).toHaveBeenCalledWith('newpassword', 10);
             expect(mockDbExecute).toHaveBeenCalledWith(
-                'UPDATE users SET name = ?, role = ?, password = ? WHERE id = ?',
+                'UPDATE users SET password = ? WHERE id = ?',
                 ['Updated User', 'admin', hashedPassword, '1']
             );
         });
