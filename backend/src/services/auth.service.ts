@@ -1,4 +1,4 @@
-import { connection } from '../index';
+import { connection } from '../database';
 import bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { User } from './user.service';

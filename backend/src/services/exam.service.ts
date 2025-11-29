@@ -28,69 +28,60 @@ export const getAllExams = async (filters: any) => {
 
 // Get a single exam by its ID, parsing the snapshot
 export const getExamById = async (id: number) => {
-    const [rows] = await connection.execute<RowDataPacket[]>('SELECT * FROM exams WHERE id = ?', [id]);
+    const [rows] = await connection.execute<RowDataPacket[]>(`
+        SELECT e.*, g.name as classLevel, s.name as subjectName
+        FROM exams e 
+        LEFT JOIN grades g ON e.grade_id = g.id
+        LEFT JOIN subjects s ON e.subject_id = s.id
+        WHERE e.id = ?
+    `, [id]);
     if (rows.length === 0) {
         throw new Error('Exam not found');
     }
     const exam = rows[0];
-    // Parse the snapshot to be used by the frontend
     exam.questions = JSON.parse(exam.questions_snapshot || '[]');
-    delete exam.questions_snapshot; // Clean up the raw field
+    delete exam.questions_snapshot; 
     return exam;
 };
 
-/**
- * The core exam building algorithm.
- * Fetches questions based on criteria and saves a snapshot.
- */
+
 export const createExam = async (examConfig: any, user: AuthenticatedUser) => {
     const { 
-        title, description, subject_id, grade_id, duration_minutes, 
-        start_time, end_time, questionRequirements 
+        title, description, subject_id, duration_minutes, 
+        scheduledStart, scheduledEnd, question_ids, classLevel, difficulty
     } = examConfig;
 
-    if (!title || !subject_id || !grade_id || !questionRequirements) {
+    if (!title || !subject_id || !question_ids || question_ids.length === 0) {
         throw new Error('Missing required exam configuration fields.');
     }
 
     await connection.beginTransaction();
 
     try {
-        const snapshotQuestions: any[] = [];
-        // This loop builds the question set based on requirements
-        for (const req of questionRequirements) {
-            const { topic, question_type, count } = req;
-            
-            const query = `
-                SELECT * FROM questions 
-                WHERE subject_id = ? AND grade_id = ? AND approval_status = 'approved' AND disabled = FALSE
-                AND topic = ? AND question_type = ?
-                ORDER BY RAND() 
-                LIMIT ?
-            `;
-            
-            const [questions] = await connection.execute<RowDataPacket[]>(query, [subject_id, grade_id, topic, question_type, count]);
-            
-            if (questions.length < count) {
-                await connection.rollback();
-                throw new Error(`Not enough approved questions found for topic '${topic}' and type '${question_type}'. Found ${questions.length}, needed ${count}.`);
-            }
-            snapshotQuestions.push(...questions);
+        const [questions] = await connection.execute<RowDataPacket[]>(
+            `SELECT * FROM questions WHERE id IN (?)`,
+            [question_ids]
+        );
+
+        if (questions.length !== question_ids.length) {
+             throw new Error('One or more selected questions could not be found.');
         }
 
-        if (snapshotQuestions.length === 0) {
-            await connection.rollback();
-            throw new Error('No questions could be found for the specified criteria. The exam cannot be created.');
+        const [subjectRows] = await connection.execute<RowDataPacket[]>('SELECT grade_id FROM subjects WHERE name = ? AND grade = ?', [subject_id, classLevel]);
+        if (subjectRows.length === 0) {
+            throw new Error('Invalid subject or class level combination.');
         }
+        const grade_id = subjectRows[0].grade_id;
+        const real_subject_id = subjectRows[0].id;
 
-        const questionsSnapshot = JSON.stringify(snapshotQuestions);
+        const questionsSnapshot = JSON.stringify(questions);
 
         const insertQuery = `
-            INSERT INTO exams (title, description, subject_id, grade_id, duration_minutes, start_time, end_time, questions_snapshot, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO exams (title, description, subject_id, grade_id, duration_minutes, start_time, end_time, questions_snapshot, created_by, difficulty)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const [result] = await connection.execute<ResultSetHeader>(insertQuery, [
-            title, description, subject_id, grade_id, duration_minutes, start_time || null, end_time || null, questionsSnapshot, user.id
+            title, description, real_subject_id, grade_id, duration_minutes, scheduledStart || null, scheduledEnd || null, questionsSnapshot, user.id, difficulty
         ]);
         
         await connection.commit();
@@ -99,25 +90,60 @@ export const createExam = async (examConfig: any, user: AuthenticatedUser) => {
     } catch (error) {
         await connection.rollback();
         console.error("Error creating exam:", error);
-        throw error; // Re-throw the error to be handled by the controller
+        throw error; 
     }
 };
 
-// Update an exam's metadata (but not its questions)
 export const updateExam = async (id: number, examData: any) => {
-    const {
-        title, description, subject_id, grade_id, 
-        duration_minutes, start_time, end_time
+    const { 
+        title, description, subject_id, duration_minutes, 
+        scheduledStart, scheduledEnd, question_ids, classLevel, difficulty
     } = examData;
 
-    const query = `
-        UPDATE exams SET 
-        title = ?, description = ?, subject_id = ?, grade_id = ?, 
-        duration_minutes = ?, start_time = ?, end_time = ?
-        WHERE id = ?
-    `;
-    await connection.execute(query, [title, description, subject_id, grade_id, duration_minutes, start_time, end_time, id]);
-    return getExamById(id);
+    if (!title || !subject_id || !question_ids || question_ids.length === 0) {
+        throw new Error('Missing required fields for updating an exam.');
+    }
+
+    await connection.beginTransaction();
+    try {
+        const [questions] = await connection.execute<RowDataPacket[]>(
+            `SELECT * FROM questions WHERE id IN (?)`,
+            [question_ids]
+        );
+
+        if (questions.length !== question_ids.length) {
+            throw new Error('One or more selected questions could not be found.');
+        }
+
+        const [subjectRows] = await connection.execute<RowDataPacket[]>('SELECT id, grade_id FROM subjects WHERE name = ? AND grade_id = (SELECT id FROM grades WHERE name = ?)', [subject_id, classLevel]);
+        if (subjectRows.length === 0) {
+            throw new Error('Invalid subject or class level combination.');
+        }
+        const grade_id = subjectRows[0].grade_id;
+        const real_subject_id = subjectRows[0].id;
+
+        const questionsSnapshot = JSON.stringify(questions);
+
+        const query = `
+            UPDATE exams SET 
+            title = ?, description = ?, subject_id = ?, grade_id = ?, duration_minutes = ?, 
+            start_time = ?, end_time = ?, questions_snapshot = ?, difficulty = ?
+            WHERE id = ?
+        `;
+        
+        await connection.execute(query, [
+            title, description, real_subject_id, grade_id, duration_minutes, 
+            scheduledStart || null, scheduledEnd || null, questionsSnapshot, difficulty, id
+        ]);
+
+        await connection.commit();
+        return getExamById(id);
+
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error updating exam:", error);
+        throw error;
+    }
 };
 
 // Delete an exam
@@ -129,11 +155,8 @@ export const deleteExam = async (id: number) => {
     return { message: 'Exam deleted successfully' };
 };
 
-/**
- * Handles student submission for a quiz.
- * Calculates score based on the immutable exam snapshot.
- */
-export const submitExam = async (examId: number, studentId: number, answers: { [key: number]: any }) => {
+
+export const submitExam = async (examId: number, studentId: number, answers: { [key:string]: any }) => {
     const exam = await getExamById(examId);
     if (!exam) throw new Error('Exam not found.');
 
@@ -142,11 +165,30 @@ export const submitExam = async (examId: number, studentId: number, answers: { [
     let totalMarks = 0;
 
     questions.forEach((q: any) => {
-        totalMarks += (q.marks || 1);
-        const correctAnswer = q.options.find((opt: any) => opt.is_correct).option_text;
+        totalMarks += (q.marks || 1); 
         const userAnswer = answers[q.id];
-        if (userAnswer === correctAnswer) {
-            score += (q.marks || 1);
+        const correctAnswer = q.answer; 
+
+        if (userAnswer === undefined || userAnswer === null || correctAnswer === undefined || correctAnswer === null) {
+            return; 
+        }
+
+        if (q.category === 'MCQ') {
+            if (userAnswer === correctAnswer) {
+                score += (q.marks || 1);
+            }
+        } else if (q.category === 'Multiple Answer') {
+            const correctAnswers = correctAnswer.split(',').map((s: string) => s.trim());
+            const userAnswerAsArray = Array.isArray(userAnswer) ? userAnswer : [];
+
+            if (userAnswerAsArray.length === 0) return;
+
+            const sortedCorrectAnswers = [...correctAnswers].sort();
+            const sortedUserAnswers = [...userAnswerAsArray].sort();
+
+            if (JSON.stringify(sortedCorrectAnswers) === JSON.stringify(sortedUserAnswers)) {
+                score += (q.marks || 1);
+            }
         }
     });
 
@@ -155,6 +197,7 @@ export const submitExam = async (examId: number, studentId: number, answers: { [
         VALUES (?, ?, ?, ?, ?)
     `;
     await connection.execute(query, [examId, studentId, score, totalMarks, JSON.stringify(answers)]);
+    
     return { score, totalMarks };
 };
 
@@ -188,7 +231,6 @@ export const getExamAnalytics = async (examId: number) => {
     const totalScore = results.reduce((acc: any, r: any) => acc + r.score, 0);
     const averageScore = totalScore / submissionCount;
 
-    // This is a simplified version; real analytics would be more complex
     return {
         examId,
         averageScore,

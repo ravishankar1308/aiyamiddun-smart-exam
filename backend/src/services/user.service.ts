@@ -1,4 +1,4 @@
-import { connection } from '../index';
+import { connection } from '../database';
 import bcrypt from 'bcryptjs';
 
 const SALT_ROUNDS = 10; // Standard salt rounds for bcrypt

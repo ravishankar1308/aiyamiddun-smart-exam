@@ -5,26 +5,36 @@ import { useAuth } from '@/context/AuthContext';
 import { apiGetStudentResults } from '@/lib/api';
 import { BarChart2 } from 'lucide-react';
 
+interface Result {
+    id: string;
+    exam_title: string;
+    submittedAt: string;
+    score: number;
+    total_marks: number;
+}
+
 export default function MyResultsPage() {
     const { user } = useAuth();
-    const [results, setResults] = useState<any[]>([]);
+    const [results, setResults] = useState<Result[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) return;
 
-        setLoading(true);
-        apiGetStudentResults(user.id)
-            .then(data => {
+        const fetchResults = async () => {
+            setLoading(true);
+            try {
+                const data = await apiGetStudentResults(user.id);
                 setResults(data);
-            })
-            .catch(err => {
+            } catch (err: any) {
                 setError(err.message || 'Failed to fetch results.');
-            })
-            .finally(() => {
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+
+        fetchResults();
     }, [user]);
 
     if (loading) return <p>Loading your results...</p>;

@@ -1,13 +1,32 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiGetQuestions, apiToggleQuestionDisable, apiDeleteQuestion, apiGetMetadata, apiUpdateQuestionStatus } from '@/lib/api';
-import { Plus, Edit, Trash2, Search, Filter, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { apiGetQuestions, apiDeleteQuestion, apiGetMetadata, apiUpdateQuestionStatus } from '@/lib/api';
+import { Plus, Edit, Trash2, Search, CheckCircle, XCircle } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce'; // A custom hook for debouncing input
 
+interface Question {
+  id: number;
+  question_text: string;
+  grade_name: string;
+  subject_name: string;
+  topic: string;
+  approval_status: 'approved' | 'rejected' | 'pending';
+}
+
+interface Grade {
+  id: string;
+  name: string;
+}
+
+interface Subject {
+  id: string;
+  name: string;
+}
+
 export default function QuestionsPage() {
-    const [questions, setQuestions] = useState([]);
+    const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
@@ -18,7 +37,7 @@ export default function QuestionsPage() {
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     // State for metadata to populate dropdowns
-    const [metadata, setMetadata] = useState<{ grades: any[], subjects: any[] }>({ grades: [], subjects: [] });
+    const [metadata, setMetadata] = useState<{ grades: Grade[], subjects: Subject[] }>({ grades: [], subjects: [] });
 
     // Fetch metadata for filters on component mount
     useEffect(() => {
@@ -26,11 +45,11 @@ export default function QuestionsPage() {
             .then(([grades, subjects]) => {
                 setMetadata({ grades, subjects });
             })
-            .catch(err => setError('Failed to load filter metadata.'));
+            .catch(() => setError('Failed to load filter metadata.'));
     }, []);
 
     // Fetch questions whenever filters or search term change
-    const fetchData = () => {
+    const fetchData = useCallback(() => {
         setLoading(true);
         apiGetQuestions(filters)
             .then(data => {
@@ -42,11 +61,11 @@ export default function QuestionsPage() {
             .finally(() => {
                 setLoading(false);
             });
-    };
+    }, [filters]);
 
     useEffect(() => {
         fetchData();
-    }, [filters]);
+    }, [fetchData]);
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -125,7 +144,7 @@ export default function QuestionsPage() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-100">
-                            {filteredQuestions.map((q: any) => (
+                            {filteredQuestions.map((q: Question) => (
                                 <tr key={q.id} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 text-sm font-medium text-slate-800 max-w-md truncate">{q.question_text}</td>
                                     <td className="px-6 py-4 text-sm text-slate-500">
@@ -156,4 +175,3 @@ export default function QuestionsPage() {
         </div>
     );
 }
-

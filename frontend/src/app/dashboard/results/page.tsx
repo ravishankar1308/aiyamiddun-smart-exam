@@ -3,13 +3,24 @@
 import { useEffect, useState, useMemo } from 'react';
 import { apiGetExams, apiGetExamResults } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, ClipboardCheck, Star, ArrowRight } from 'lucide-react';
+import { Users, ClipboardCheck, Star } from 'lucide-react';
+
+interface Exam {
+    id: string;
+    title: string;
+}
+
+interface Result {
+    student_name: string;
+    score: number;
+    total_marks: number;
+}
 
 // Main component for displaying exam analytics
 export default function ResultsDashboardPage() {
-    const [exams, setExams] = useState<any[]>([]);
+    const [exams, setExams] = useState<Exam[]>([]);
     const [selectedExamId, setSelectedExamId] = useState<string>('');
-    const [results, setResults] = useState<any[]>([]);
+    const [results, setResults] = useState<Result[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -124,7 +135,7 @@ export default function ResultsDashboardPage() {
 }
 
 // Helper component for KPI cards
-function KpiCard({ icon: Icon, title, value }: { icon: React.ElementType, title: string, value: any }) {
+function KpiCard({ icon: Icon, title, value }: { icon: React.ElementType, title: string, value: string | number }) {
     return (
         <div className="bg-white p-6 rounded-lg shadow flex items-center justify-between">
             <div>
