@@ -1,7 +1,7 @@
+
 import { connection } from '../database';
 import { RowDataPacket } from 'mysql2';
 
-// Interface for a user object, typically from auth middleware
 interface AuthenticatedUser {
     id: number;
     role: 'student' | 'teacher' | 'admin' | 'owner';
@@ -11,29 +11,34 @@ interface AuthenticatedUser {
 export const getAllQuestions = async (filters: any) => {
     let query = `
         SELECT 
-            q.id, q.question_text, q.question_type, q.topic, q.difficulty, q.marks,
-            q.approval_status, q.disabled, q.createdAt, q.updatedAt,
+            q.id, q.text, q.marks, q.status, q.is_disabled, q.created_at, q.updated_at,
             s.name AS subject_name,
             g.name AS grade_name,
+            sec.name AS section_name,
+            qt.name AS question_type_name,
+            d.name AS difficulty_name,
             u.username AS author_username
         FROM questions q
         LEFT JOIN subjects s ON q.subject_id = s.id
-        LEFT JOIN grades g ON q.grade_id = g.id
-        LEFT JOIN users u ON q.created_by = u.id
+        LEFT JOIN grades g ON s.grade_id = g.id
+        LEFT JOIN sections sec ON q.section_id = sec.id
+        LEFT JOIN question_types qt ON q.question_type_id = qt.id
+        LEFT JOIN difficulties d ON q.difficulty_id = d.id
+        LEFT JOIN users u ON q.author_id = u.id
     `;
     
     const params: (string | number)[] = [];
     const conditions: string[] = [];
 
-    if (filters.grade_id) { conditions.push('q.grade_id = ?'); params.push(filters.grade_id); }
+    if (filters.grade_id) { conditions.push('s.grade_id = ?'); params.push(filters.grade_id); }
     if (filters.subject_id) { conditions.push('q.subject_id = ?'); params.push(filters.subject_id); }
-    if (filters.approval_status) { conditions.push('q.approval_status = ?'); params.push(filters.approval_status); }
+    if (filters.status) { conditions.push('q.status = ?'); params.push(filters.status); }
 
     if (conditions.length) {
         query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ' ORDER BY q.createdAt DESC';
+    query += ' ORDER BY q.created_at DESC';
 
     const [rows] = await connection.execute(query, params);
     return rows;
@@ -49,42 +54,41 @@ export const getQuestionById = async (id: number) => {
 
 // Create a new question with role-based approval status
 export const createQuestion = async (q: any, user: AuthenticatedUser) => {
-    const approval_status = (user.role === 'admin' || user.role === 'owner') ? 'approved' : 'pending';
+    const status = (user.role === 'admin' || user.role === 'owner') ? 'approved' : 'pending';
 
     const query = `
-        INSERT INTO questions (question_text, question_type, options, subject_id, grade_id, topic, difficulty, marks, created_by, approval_status, image_base64)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO questions (text, options, subject_id, section_id, question_type_id, difficulty_id, marks, author_id, status, imageUrl)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const [result]: any = await connection.execute(query, [
-        q.question_text,
-        q.question_type,
+        q.text,
         JSON.stringify(q.options ?? null),
         q.subject_id,
-        q.grade_id,
-        q.topic ?? null,
-        q.difficulty,
+        q.section_id ?? null,
+        q.question_type_id,
+        q.difficulty_id,
         q.marks ?? 1,
-        user.id, // Set the creator ID
-        approval_status, // Set status based on role
-        q.image_base64 ?? null
+        user.id, // Set the author ID
+        status, // Set status based on role
+        q.imageUrl ?? null
     ]);
     
-    return { id: result.insertId, ...q, approval_status };
+    return { id: result.insertId, ...q, status };
 };
 
 // Update an existing question
 export const updateQuestion = async (id: number, q: any) => {
     const query = `
         UPDATE questions SET
-        question_text = ?, question_type = ?, options = ?, subject_id = ?, grade_id = ?,
-        topic = ?, difficulty = ?, marks = ?, image_base64 = ?
+        text = ?, options = ?, subject_id = ?, section_id = ?, question_type_id = ?,
+        difficulty_id = ?, marks = ?, imageUrl = ?
         WHERE id = ?
     `;
     
     await connection.execute(query, [
-        q.question_text, q.question_type, JSON.stringify(q.options ?? null), q.subject_id, q.grade_id,
-        q.topic, q.difficulty, q.marks, q.image_base64 ?? null, id
+        q.text, JSON.stringify(q.options ?? null), q.subject_id, q.section_id, q.question_type_id,
+        q.difficulty_id, q.marks, q.imageUrl ?? null, id
     ]);
     return getQuestionById(id);
 };
@@ -94,15 +98,15 @@ export const updateQuestionStatus = async (id: number, status: 'approved' | 'rej
     if (!['approved', 'rejected', 'pending'].includes(status)) {
         throw new Error('Invalid status value');
     }
-    await connection.execute('UPDATE questions SET approval_status = ? WHERE id = ?', [status, id]);
+    await connection.execute('UPDATE questions SET status = ? WHERE id = ?', [status, id]);
     return { message: `Question status updated to ${status}` };
 };
 
 // Toggle the disabled state of a question
 export const toggleQuestionDisable = async (id: number) => {
-    const question = await getQuestionById(id);
-    const newStatus = !question.disabled;
-    await connection.execute('UPDATE questions SET disabled = ? WHERE id = ?', [newStatus, id]);
+    const question: any = await getQuestionById(id);
+    const newStatus = !question.is_disabled;
+    await connection.execute('UPDATE questions SET is_disabled = ? WHERE id = ?', [newStatus, id]);
     return { message: `Question ${newStatus ? 'disabled' : 'enabled'} successfully` };
 };
 
