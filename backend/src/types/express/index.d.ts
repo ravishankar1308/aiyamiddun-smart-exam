@@ -1,17 +1,13 @@
-// This file uses declaration merging to add a custom 'user' property to the global
-// Express.Request interface. This is the idiomatic and type-safe way to do it.
 
-declare global {
-    namespace Express {
-        interface Request {
-            // This 'user' property will be attached by our authMiddleware.
-            user?: {
-                id: number; // Or string, depending on your user ID type
-                role: string;
-            };
-        }
-    }
+import { Request } from 'express';
+
+// Define a type for the authenticated user
+export type AuthenticatedUser = {
+    id: number;
+    role: 'student' | 'teacher' | 'admin' | 'owner';
+};
+
+// Extend the Express Request interface to include the authenticated user
+export interface AuthenticatedRequest extends Request {
+    user?: AuthenticatedUser;
 }
-
-// An empty export statement is required to make this file a module and apply the augmentation.
-export {};

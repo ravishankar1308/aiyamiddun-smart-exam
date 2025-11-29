@@ -1,13 +1,6 @@
 import { Request, Response } from 'express';
 import * as examService from '../services/exam.service';
-
-// Add this interface to extend the Express Request object
-interface AuthenticatedRequest extends Request {
-    user?: {
-        id: number;
-        role: string;
-    };
-}
+import { AuthenticatedRequest } from '../types/express';
 
 export const getAllExams = async (req: Request, res: Response) => {
     try {
