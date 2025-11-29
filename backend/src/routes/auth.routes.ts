@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login } from '../controllers/auth.controller';
+import { login, register } from '../controllers/auth.controller';
 
 const router = Router();
 
@@ -7,7 +7,8 @@ const router = Router();
 // POST /api/auth/login
 router.post('/login', login);
 
-// The register route was removed temporarily to fix a compilation error.
-// We can add the full registration functionality next.
+// Route for user registration
+// POST /api/auth/register
+router.post('/register', register);
 
 export default router;
