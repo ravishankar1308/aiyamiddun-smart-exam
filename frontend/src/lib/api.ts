@@ -169,7 +169,10 @@ export const apiToggleUserDisable = (id: string | number) => fetchApi<SuccessMes
 
 // Metadata
 export const apiGetAllMetadata = () => fetchApi<AllMetadata>('/metadata/all');
-export const apiUpdateMetadata = (type: string, data: any) => fetchApi<any>(`/metadata/${type}`, { method: 'POST', body: JSON.stringify(data) });
+export const apiUpdateMetadata = (type: string, data: any) => {
+    const body = typeof data === 'string' ? data : JSON.stringify(data);
+    return fetchApi<any>(`/metadata/${type}`, { method: 'POST', body });
+};
 
 // Questions
 export const apiGetAllQuestions = (filters: Record<string, string> = {}) => {
@@ -184,7 +187,7 @@ export const apiToggleQuestionDisable = (id: string | number) => fetchApi<Succes
 export const apiDeleteQuestion = (id: string | number) => fetchApi<DeletionResponse>(`/questions/${id}`, { method: 'DELETE' });
 
 // AI Generator
-export const apiGenerateQuestions = (params: { topic: string; difficulty: string; count: number; }) => fetchApi<Question[]>('/generator/questions', { method: 'POST', body: JSON.stringify(params) });
+export const apiGenerateQuestions = (params: { topic: string; difficulty: string; count: number; }) => fetchApi<Question[]>(`/generator/questions`, { method: 'POST', body: JSON.stringify(params) });
 
 // Exams
 export const apiGetExams = () => fetchApi<Exam[]>('/exams');
