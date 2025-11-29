@@ -58,3 +58,58 @@ export const generateQuestions = async (topic: string, difficulty: string, count
         throw new Error("Failed to generate questions from AI.");
     }
 };
+
+/**
+ * Generates an exam draft using the Gemini AI.
+ * 
+ * @param topic The topic for the exam (e.g., "algebra").
+ * @param difficulty The difficulty level (e.g., "medium").
+ * @param questionCount The number of questions for the exam.
+ * @returns A promise that resolves to a complete exam draft.
+ */
+export const generateExamDraft = async (topic: string, difficulty: string, questionCount: number) => {
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+        const prompt = `
+            Generate a complete exam draft on the topic of "${topic}" with a "${difficulty}" difficulty level.
+            The exam should include:
+            1. A clear and concise exam title.
+            2. A brief description of the exam.
+            3. Exactly ${questionCount} multiple-choice questions, each with:
+               - The question text.
+               - Four options (A, B, C, D).
+               - The correct answer (just the letter, e.g., "A").
+
+            Return the entire output as a single, valid, stringified JSON object in this format:
+            {
+                "title": "...",
+                "description": "...",
+                "questions": [
+                    {
+                        "text": "...",
+                        "options": ["...", "...", "...", "..."],
+                        "answer": "A"
+                    },
+                    ...
+                ]
+            }
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = await response.text();
+
+        // Clean the response to ensure it's valid JSON
+        const jsonResponse = text.replace(/```json|```/g, '').trim();
+        
+        // Parse the JSON string into an exam draft object
+        const examDraft = JSON.parse(jsonResponse);
+
+        return examDraft;
+
+    } catch (error) {
+        console.error("Error calling Gemini API:", error);
+        throw new Error("Failed to generate exam draft from AI.");
+    }
+};

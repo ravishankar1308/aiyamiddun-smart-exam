@@ -174,6 +174,12 @@ export const apiGenerateQuestions = (topic: string, difficulty: QuestionDifficul
     body: JSON.stringify({ topic, difficulty, count })
   });
 
+export const apiGenerateExamDraft = (topic: string, difficulty: QuestionDifficulty, questionCount: number) => 
+  fetchApi<{ title: string; description: string; questions: QuestionData[] }>('/ai/generate-exam-draft', { 
+    method: 'POST', 
+    body: JSON.stringify({ topic, difficulty, questionCount })
+  });
+
 // --- RESULTS APIS ---
 export const apiGetResults = () => 
   fetchApi<Result[]>('/results');
