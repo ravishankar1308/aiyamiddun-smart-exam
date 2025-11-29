@@ -108,6 +108,22 @@ export interface Question {
     author_username?: string;
 }
 
+export interface Exam {
+    id: number;
+    title: string;
+    description?: string;
+    subject_id?: number;
+    grade_id?: number;
+    duration_minutes: number;
+    scheduled_start?: string;
+    author_id?: number;
+    created_at: string;
+    // Joined fields
+    grade_name?: string;
+    subject_name?: string;
+    author_username?: string;
+    question_count?: number;
+}
 
 export interface LoginResponse {
     token: string;
@@ -150,3 +166,10 @@ export const apiUpdateQuestion = (id: string | number, questionData: Partial<Que
 export const apiUpdateQuestionStatus = (id: string | number, status: string) => fetchApi<SuccessMessage>(`/questions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const apiToggleQuestionDisable = (id: string | number) => fetchApi<SuccessMessage>(`/questions/${id}/toggle-disable`, { method: 'PATCH' });
 export const apiDeleteQuestion = (id: string | number) => fetchApi<DeletionResponse>(`/questions/${id}`, { method: 'DELETE' });
+
+// Exams
+export const apiGetExams = () => fetchApi<Exam[]>('/exams');
+export const apiGetExam = (id: string | number) => fetchApi<Exam>(`/exams/${id}`);
+export const apiCreateExam = (examData: Partial<Exam>) => fetchApi<Exam>('/exams', { method: 'POST', body: JSON.stringify(examData) });
+export const apiUpdateExam = (id: string | number, examData: Partial<Exam>) => fetchApi<Exam>(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(examData) });
+export const apiDeleteExam = (id: string | number) => fetchApi<DeletionResponse>(`/exams/${id}`, { method: 'DELETE' });
