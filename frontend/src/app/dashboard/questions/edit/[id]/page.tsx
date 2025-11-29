@@ -14,16 +14,16 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import { apiGetQuestion, apiUpdateQuestion, apiGetMetadata } from '@/lib/api';
+import { apiGetQuestion, apiUpdateQuestion, apiGetAllMetadata } from '@/lib/api';
 
 const initialManualState = {
   text: '',
   answer: '',
   category: 'MCQ',
-  difficulty: 'medium',
-  subject: '',
-  classLevel: '',
-  section: '',
+  difficulty_id: '',
+  subject_id: '',
+  grade_id: '',
+  section_id: '',
   marks: '',
   answerDetail: '',
   imageUrl: '',
@@ -33,7 +33,7 @@ const initialManualState = {
 
 export default function EditQuestionPage() {
   const [question, setQuestion] = useState(initialManualState);
-  const [metadata, setMetadata] = useState({ grades: [], subjects: [], sections: [], questionTypes: [] });
+  const [metadata, setMetadata] = useState({ grades: [], subjects: [], sections: [], questionTypes: [], difficulties: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
@@ -45,13 +45,8 @@ export default function EditQuestionPage() {
     const fetchMetadata = async () => {
       try {
         setLoading(true);
-        const [grades, subjects, sections, questionTypes] = await Promise.all([
-          apiGetMetadata('grades'),
-          apiGetMetadata('subjects'),
-          apiGetMetadata('sections'),
-          apiGetMetadata('questionTypes'),
-        ]);
-        setMetadata({ grades, subjects, sections, questionTypes });
+        const allMetadata = await apiGetAllMetadata();
+        setMetadata(allMetadata);
       } catch (err) {
         setError("Failed to load metadata.");
         console.error(err);
@@ -63,15 +58,12 @@ export default function EditQuestionPage() {
     const fetchQuestionAndMeta = async () => {
       try {
         setLoading(true);
-        const [questionData, grades, subjects, sections, questionTypes] = await Promise.all([
+        const [questionData, allMetadata] = await Promise.all([
           apiGetQuestion(id),
-          apiGetMetadata('grades'),
-          apiGetMetadata('subjects'),
-          apiGetMetadata('sections'),
-          apiGetMetadata('questionTypes'),
+          apiGetAllMetadata(),
         ]);
         setQuestion(questionData);
-        setMetadata({ grades, subjects, sections, questionTypes });
+        setMetadata(allMetadata);
       } catch (err) {
         setError("Failed to load question or metadata.");
         console.error(err);
@@ -88,7 +80,7 @@ export default function EditQuestionPage() {
   }, [id]);
 
   const handleUpdate = async () => {
-    if (!question.text || !question.classLevel || !question.subject || !question.section) {
+    if (!question.text || !question.grade_id || !question.subject_id) {
       alert("Please fill all required fields.");
       return;
     }
@@ -144,10 +136,8 @@ export default function EditQuestionPage() {
   const isObjective = ['MCQ', 'Multiple Answer'].includes(question.category);
   const isMultipleAnswer = question.category === 'Multiple Answer';
 
-  const activeGrades = metadata.grades.filter(g => g.active);
-  const activeQTypes = metadata.questionTypes.filter(t => t.active);
-  const availableSubjects = question.classLevel ? metadata.subjects.filter(s => s.grade === question.classLevel && s.active) : [];
-  const availableSections = (question.classLevel && question.subject) ? metadata.sections.filter(s => s.grade === question.classLevel && s.subject === question.subject && s.active) : [];
+  const availableSubjects = question.grade_id ? metadata.subjects.filter(s => s.grade_id === parseInt(question.grade_id)) : [];
+  const availableSections = question.subject_id ? metadata.sections.filter(s => s.subject_id === parseInt(question.subject_id)) : [];
 
   if (loading && !question.text) return <div>Loading...</div>
 
@@ -165,23 +155,23 @@ export default function EditQuestionPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Class / Grade</label>
-            <select value={question.classLevel} onChange={e => setQuestion({ ...question, classLevel: e.target.value, subject: '', section: '' })} className="w-full p-2 border rounded text-sm bg-white outline-none">
+            <select value={question.grade_id} onChange={e => setQuestion({ ...question, grade_id: e.target.value, subject_id: '', section_id: '' })} className="w-full p-2 border rounded text-sm bg-white outline-none">
               <option value="">Select Class</option>
-              {activeGrades.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+              {metadata.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Subject</label>
-            <select value={question.subject} onChange={e => setQuestion({ ...question, subject: e.target.value, section: '' })} className="w-full p-2 border rounded text-sm bg-white outline-none" disabled={!question.classLevel}>
+            <select value={question.subject_id} onChange={e => setQuestion({ ...question, subject_id: e.target.value, section_id: '' })} className="w-full p-2 border rounded text-sm bg-white outline-none" disabled={!question.grade_id}>
               <option value="">Select Subject</option>
-              {availableSubjects.map((s, i) => <option key={i} value={s.name}>{s.name}</option>)}
+              {availableSubjects.map((s, i) => <option key={i} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Section</label>
-            <select value={question.section} onChange={e => setQuestion({ ...question, section: e.target.value })} className="w-full p-2 border rounded text-sm bg-white outline-none" disabled={!question.subject}>
+            <select value={question.section_id} onChange={e => setQuestion({ ...question, section_id: e.target.value })} className="w-full p-2 border rounded text-sm bg-white outline-none" disabled={!question.subject_id}>
               <option value="">Select Section</option>
-              {availableSections.map((s, i) => <option key={i} value={s.name}>{s.name}</option>)}
+              {availableSections.map((s, i) => <option key={i} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
@@ -195,15 +185,14 @@ export default function EditQuestionPage() {
             <label className="block text-sm font-semibold text-slate-700 mb-2">Question Type</label>
             <select value={question.category} onChange={(e) => setQuestion({ ...question, category: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none bg-white">
                 <option value="">Select Type</option>
-                {activeQTypes.map((t, i) => <option key={i} value={t.name}>{t.name}</option>)}
+                {metadata.questionTypes.map((t, i) => <option key={i} value={t.id}>{t.name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Difficulty</label>
-            <select value={question.difficulty} onChange={(e) => setQuestion({ ...question, difficulty: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none bg-white">
-              <option value="simple">Simple</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
+            <select value={question.difficulty_id} onChange={(e) => setQuestion({ ...question, difficulty_id: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none bg-white">
+              <option value="">Select Difficulty</option>
+              {metadata.difficulties.map((d, i) => <option key={i} value={d.id}>{d.name}</option>)}
             </select>
           </div>
         </div>
