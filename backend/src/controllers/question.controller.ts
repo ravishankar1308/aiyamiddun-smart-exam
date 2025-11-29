@@ -43,7 +43,7 @@ export const updateQuestionStatus = async (req: Request, res: Response) => {
         const message = await questionService.updateQuestionStatus(parseInt(id), status);
         res.json({ message });
     } catch (error) {
-        console.error(`Error updating question ${id} status:', error);
+        console.error(`Error updating question ${id} status:, error`);
         if ((error as any).message === 'Invalid status') {
             return res.status(400).json({ error: (error as any).message });
         }
@@ -57,7 +57,7 @@ export const toggleQuestionDisable = async (req: Request, res: Response) => {
         const message = await questionService.toggleQuestionDisable(parseInt(id));
         res.json({ message });
     } catch (error) {
-        console.error(`Error toggling question ${id} status:', error);
+        console.error(`Error toggling question ${id} status: error`);
         if ((error as any).message === 'Question not found') {
             return res.status(404).json({ error: (error as any).message });
         }
