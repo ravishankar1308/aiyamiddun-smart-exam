@@ -38,7 +38,7 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> 
 
 export type UserRole = 'student' | 'teacher' | 'admin' | 'owner';
 
-export interface User {
+export interface UserProfile {
     id: number;
     name: string;
     username: string;
@@ -127,7 +127,7 @@ export interface Exam {
 
 export interface LoginResponse {
     token: string;
-    user: User;
+    user: UserProfile;
 }
 
 export interface DeletionResponse {
@@ -143,12 +143,13 @@ export interface SuccessMessage {
 
 // Auth
 export const apiLogin = (credentials: object) => fetchApi<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
-export const apiFetchCurrentUser = () => fetchApi<{ user: User }>('/auth/me');
+export const apiRegister = (userData: Partial<UserProfile>) => fetchApi<LoginResponse>('/auth/register', { method: 'POST', body: JSON.stringify(userData) });
+export const apiFetchCurrentUser = () => fetchApi<{ user: UserProfile }>('/auth/me');
 
 // Users
-export const apiGetAllUsers = () => fetchApi<{ users: User[] }>('/users');
-export const apiCreateUser = (userData: Partial<User>) => fetchApi<User>('/users', { method: 'POST', body: JSON.stringify(userData) });
-export const apiUpdateUser = (id: string | number, userData: Partial<User>) => fetchApi<User>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) });
+export const apiGetAllUsers = () => fetchApi<{ users: UserProfile[] }>('/users');
+export const apiCreateUser = (userData: Partial<UserProfile>) => fetchApi<UserProfile>('/users', { method: 'POST', body: JSON.stringify(userData) });
+export const apiUpdateUser = (id: string | number, userData: Partial<UserProfile>) => fetchApi<UserProfile>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) });
 export const apiDeleteUser = (id: string | number) => fetchApi<DeletionResponse>(`/users/${id}`, { method: 'DELETE' });
 export const apiToggleUserDisable = (id: string | number) => fetchApi<SuccessMessage>(`/users/${id}/toggle-disable`, { method: 'PATCH' });
 

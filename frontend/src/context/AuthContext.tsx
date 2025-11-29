@@ -1,10 +1,11 @@
-
-// context/AuthContext.tsx
+// frontend/src/context/AuthContext.tsx
 
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiLogin, apiRegister, UserProfile } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { apiLogin, apiRegister, apiFetchCurrentUser, UserProfile } from '@/lib/api';
+import { saveToken, getToken, removeToken } from '@/lib/auth';
 
 // Define a type for the registration data
 interface RegisterData {
@@ -19,7 +20,7 @@ interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (credentials: {username: string, password: string}) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
 }
@@ -34,34 +35,41 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Initially true to check for stored user
+  const [token, setToken] = useState<string | null>(getToken());
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    // On component mount, try to load user and token from local storage
-    try {
-      const storedUser = localStorage.getItem('aiyamiddun_user');
-      const storedToken = localStorage.getItem('aiyamiddun_token');
-      if (storedUser && storedToken) {
-        setUser(JSON.parse(storedUser));
-        setToken(storedToken);
+    const verifyUser = async () => {
+      const currentToken = getToken();
+      if (currentToken) {
+        try {
+          const { user } = await apiFetchCurrentUser();
+          setUser(user);
+          setToken(currentToken);
+        } catch (error) {
+          console.error("Session expired or token is invalid. Logging out.", error);
+          removeToken();
+          setUser(null);
+          setToken(null);
+        }
       }
-    } catch (error) {
-      console.error("Failed to parse user from local storage", error);
-      localStorage.removeItem('aiyamiddun_user'); // Clear corrupted data
-      localStorage.removeItem('aiyamiddun_token');
-    }
-    setLoading(false); // Done checking
+      setLoading(false);
+    };
+    verifyUser();
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (credentials: {username: string, password: string}) => {
     setLoading(true);
     try {
-      const { token, user } = await apiLogin(username, password);
+      const { token, user } = await apiLogin(credentials);
       setUser(user);
       setToken(token);
-      localStorage.setItem('aiyamiddun_user', JSON.stringify(user));
-      localStorage.setItem('aiyamiddun_token', token);
+      saveToken(token);
+      router.push('/dashboard'); // Redirect to dashboard on successful login
+    } catch (error) {
+        console.error('Login failed:', error);
+        throw error; // Re-throw to be handled by the form
     } finally {
       setLoading(false);
     }
@@ -70,8 +78,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: RegisterData) => {
     setLoading(true);
     try {
-      await apiRegister(userData);
-      await login(userData.username, userData.password);
+        // apiRegister is designed to log the user in directly
+      const { token, user } = await apiRegister(userData);
+      setUser(user);
+      setToken(token);
+      saveToken(token);
+      router.push('/dashboard'); // Redirect to dashboard on successful registration
+    } catch (error) {
+        console.error('Registration failed:', error);
+        throw error; // Re-throw to be handled by the form
     } finally {
       setLoading(false);
     }
@@ -80,8 +95,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('aiyamiddun_user');
-    localStorage.removeItem('aiyamiddun_token');
+    removeToken();
+    router.push('/login'); // Redirect to login page on logout
   };
 
   const value = {
@@ -95,7 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
