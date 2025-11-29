@@ -1,4 +1,4 @@
-import { connection } from '../index';
+import { connection } from '../database';
 
 interface MetadataSchema {
     grades: any[];

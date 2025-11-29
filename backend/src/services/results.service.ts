@@ -1,4 +1,4 @@
-import { connection } from '../index';
+import { connection } from '../database';
 
 /**
  * Fetches all exam results, filtering based on the user's role.

@@ -1,4 +1,4 @@
-import { connection } from '../index';
+import { connection } from '../database';
 import { RowDataPacket } from 'mysql2';
 
 // Interface for a user object, typically from auth middleware
