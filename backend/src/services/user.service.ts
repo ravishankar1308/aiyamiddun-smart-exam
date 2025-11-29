@@ -8,7 +8,6 @@ export interface User {
     id: number;
     name: string;
     username: string;
-    email: string;
     password?: string; // Make password optional as it won't always be selected
     role: string;
     disabled: boolean;

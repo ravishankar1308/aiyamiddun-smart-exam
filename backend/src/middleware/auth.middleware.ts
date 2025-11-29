@@ -35,7 +35,7 @@ export const adminOrOwnerMiddleware = (req: Request, res: Response, next: NextFu
         return res.status(403).json({ error: 'Forbidden: Authentication required.' });
     }
 
-    if (req.user.role === 'Admin') {
+    if (req.user.role === 'admin') {
         return next();
     }
     

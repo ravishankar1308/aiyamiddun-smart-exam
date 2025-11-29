@@ -65,7 +65,6 @@ export const register = async (name: string, username: string, password: string,
             username,
             password: hashedPassword,
             role,
-            email: '', // Add a default empty string for email
             created_at: new Date(),
             updated_at: new Date(),
             disabled: false,
