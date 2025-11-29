@@ -1,15 +1,18 @@
+import 'express';
 
-import { Request } from 'express';
-
-// Define a type for the authenticated user
-export type AuthenticatedUser = {
-    id: number;
-    role: 'student' | 'teacher' | 'admin' | 'owner';
-};
-
-// Extend the Express Request interface to include the authenticated user
-export interface AuthenticatedRequest extends Request {
-    user?: AuthenticatedUser;
-    body: any;
-    params: any;
+declare global {
+  namespace Express {
+    export interface Request {
+      user?: {
+        id: number;
+        name: string;
+        username: string;
+        role: string;
+        disabled: boolean;
+        created_at: Date;
+        updated_at: Date;
+        last_login: Date | null;
+      };
+    }
+  }
 }
