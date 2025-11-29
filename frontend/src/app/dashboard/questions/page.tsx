@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGetQuestions, apiDeleteQuestion, apiGetMetadata, apiUpdateQuestionStatus } from '@/lib/api';
 import { Plus, Edit, Trash2, Search, CheckCircle, XCircle } from 'lucide-react';
-import { useDebounce } from '@/hooks/useDebounce'; // A custom hook for debouncing input
+import useDebounce from '@/hooks/useDebounce'; // A custom hook for debouncing input
 
 interface Question {
   id: number;
