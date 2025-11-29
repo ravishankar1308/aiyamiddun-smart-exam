@@ -8,9 +8,13 @@ export interface User {
     id: number;
     name: string;
     username: string;
+    email: string;
     password?: string; // Make password optional as it won't always be selected
     role: string;
     disabled: boolean;
+    created_at: Date;
+    updated_at: Date;
+    last_login: Date | null;
 }
 
 export const getAllUsers = async () => {

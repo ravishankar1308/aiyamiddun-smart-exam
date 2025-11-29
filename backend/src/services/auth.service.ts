@@ -52,7 +52,7 @@ export const login = async (username: string, password: string): Promise<{ token
     }
 };
 
-export const register = async (username: string, password: string, email: string, role: string = 'student'): Promise<Omit<User, 'password'> | null> => {
+export const register = async (name: string, username: string, password: string, role: string): Promise<Omit<User, 'password'> | null> => {
     try {
         const [existingUsers] = await connection.query('SELECT * FROM users WHERE username = ?', [username]);
         if ((existingUsers as User[]).length > 0) {
@@ -61,15 +61,15 @@ export const register = async (username: string, password: string, email: string
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser: Omit<User, 'id'> = {
+            name,
             username,
             password: hashedPassword,
-            email,
             role,
+            email: '', // Add a default empty string for email
             created_at: new Date(),
             updated_at: new Date(),
-            is_active: true,
+            disabled: false,
             last_login: null,
-            name: ''
         };
 
         const [result] = await connection.query('INSERT INTO users SET ?', newUser);
