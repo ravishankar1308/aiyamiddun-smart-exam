@@ -157,7 +157,6 @@ export const apiToggleUserDisable = (id: string | number) => fetchApi<SuccessMes
 export const apiGetAllMetadata = () => fetchApi<AllMetadata>('/metadata/all');
 export const apiUpdateMetadata = (type: string, data: any) => fetchApi<any>(`/metadata/${type}`, { method: 'POST', body: JSON.stringify(data) });
 
-
 // Questions
 export const apiGetAllQuestions = (filters: Record<string, string> = {}) => {
     const query = new URLSearchParams(filters).toString();
@@ -169,6 +168,9 @@ export const apiUpdateQuestion = (id: string | number, questionData: Partial<Que
 export const apiUpdateQuestionStatus = (id: string | number, status: string) => fetchApi<SuccessMessage>(`/questions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const apiToggleQuestionDisable = (id: string | number) => fetchApi<SuccessMessage>(`/questions/${id}/toggle-disable`, { method: 'PATCH' });
 export const apiDeleteQuestion = (id: string | number) => fetchApi<DeletionResponse>(`/questions/${id}`, { method: 'DELETE' });
+
+// AI Generator
+export const apiGenerateQuestions = (params: { topic: string; difficulty: string; count: number; }) => fetchApi<Question[]>('/generator/questions', { method: 'POST', body: JSON.stringify(params) });
 
 // Exams
 export const apiGetExams = () => fetchApi<Exam[]>('/exams');
