@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import * as questionService from '../services/question.service';
-import { AuthenticatedRequest } from '../types/express';
 
 export const getAllQuestions = async (req: Request, res: Response) => {
     try {
@@ -12,7 +11,7 @@ export const getAllQuestions = async (req: Request, res: Response) => {
     }
 };
 
-export const createQuestion = async (req: AuthenticatedRequest, res: Response) => {
+export const createQuestion = async (req: Request, res: Response) => {
     try {
         if (!req.user) {
             return res.status(401).json({ error: 'User not authenticated' });

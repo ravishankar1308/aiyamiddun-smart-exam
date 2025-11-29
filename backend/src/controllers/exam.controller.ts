@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import * as examService from '../services/exam.service';
-import { AuthenticatedRequest } from '../types/express';
 
 export const getAllExams = async (req: Request, res: Response) => {
     try {
@@ -26,7 +25,7 @@ export const getExamById = async (req: Request, res: Response) => {
     }
 };
 
-export const createExam = async (req: AuthenticatedRequest, res: Response) => {
+export const createExam = async (req: Request, res: Response) => {
     try {
         if (!req.user) {
             return res.status(401).json({ error: 'User not authenticated' });
@@ -67,7 +66,7 @@ export const deleteExam = async (req: Request, res: Response) => {
     }
 };
 
-export const submitExam = async (req: AuthenticatedRequest, res: Response) => {
+export const submitExam = async (req: Request, res: Response) => {
     const { id: examId } = req.params;
     const { answers } = req.body;
 
