@@ -51,3 +51,42 @@ export const login = async (username: string, password: string): Promise<{ token
         throw new Error('Could not process login request.');
     }
 };
+
+export const register = async (username: string, password: string, email: string, role: string = 'student'): Promise<Omit<User, 'password'> | null> => {
+    try {
+        const [existingUsers] = await connection.query('SELECT * FROM users WHERE username = ?', [username]);
+        if ((existingUsers as User[]).length > 0) {
+            throw new Error('Username already exists.');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser: Omit<User, 'id'> = {
+            username,
+            password: hashedPassword,
+            email,
+            role,
+            created_at: new Date(),
+            updated_at: new Date(),
+            is_active: true,
+            last_login: null,
+            name: ''
+        };
+
+        const [result] = await connection.query('INSERT INTO users SET ?', newUser);
+        const insertId = (result as any).insertId;
+
+        const [rows] = await connection.query('SELECT * FROM users WHERE id = ?', [insertId]);
+        const user = (rows as User[])[0];
+
+        if (!user) {
+            return null;
+        }
+
+        const { password: _, ...userProfile } = user;
+        return userProfile;
+
+    } catch (error) {
+        console.error('Error during registration process:', error);
+        throw error; // Re-throw the error to be handled by the controller
+    }
+};
