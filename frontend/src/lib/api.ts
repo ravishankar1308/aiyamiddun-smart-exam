@@ -140,6 +140,7 @@ export const apiGetQuestions = (filters: ApiFilters = {}) => {
   const query = new URLSearchParams(filters as Record<string, string>).toString();
   return fetchApi<Question[]>(`/questions?${query}`);
 };
+export const apiGetQuestion = (id: string | number) => fetchApi<Question>(`/questions/${id}`);
 export const apiCreateQuestion = (questionData: QuestionData) => fetchApi<Question>('/questions', { method: 'POST', body: JSON.stringify(questionData) });
 export const apiUpdateQuestion = (id: string | number, questionData: Partial<QuestionData>) => fetchApi<SuccessMessage>(`/questions/${id}`, { method: 'PUT', body: JSON.stringify(questionData) });
 export const apiUpdateQuestionStatus = (id: string | number, status: QuestionStatus) => fetchApi<SuccessMessage>(`/questions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
