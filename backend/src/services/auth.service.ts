@@ -10,7 +10,6 @@ if (!JWT_SECRET) {
   throw new Error('FATAL ERROR: JWT_SECRET is not defined in the environment variables.');
 }
 
-// Update the return type to include the user object
 export const login = async (username: string, password: string): Promise<{ token: string; user: Omit<User, 'password'> } | null> => {
     try {
         const [rows] = await connection.query('SELECT * FROM users WHERE username = ?', [username]);
@@ -29,7 +28,6 @@ export const login = async (username: string, password: string): Promise<{ token
             return null;
         }
 
-        // Remove password from user object before sending it to the client
         const { password: _, ...userProfile } = user;
 
         const payload = {
@@ -43,7 +41,6 @@ export const login = async (username: string, password: string): Promise<{ token
 
         const token = jwt.sign(payload, JWT_SECRET, options);
 
-        // Return both the token and the user profile
         return { token, user: userProfile };
 
     } catch (error) {
@@ -60,15 +57,13 @@ export const register = async (name: string, username: string, password: string,
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser: Omit<User, 'id'> = {
+        // The `newUser` object should only contain fields that are manually inserted.
+        // `createdAt` has a default value and should not be in the INSERT statement.
+        const newUser = {
             name,
             username,
             password: hashedPassword,
-            role,
-            created_at: new Date(),
-            updated_at: new Date(),
-            disabled: false,
-            last_login: null,
+            role
         };
 
         const [result] = await connection.query('INSERT INTO users SET ?', newUser);

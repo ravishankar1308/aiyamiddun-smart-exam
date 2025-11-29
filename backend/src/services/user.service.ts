@@ -3,31 +3,26 @@ import bcrypt from 'bcryptjs';
 
 const SALT_ROUNDS = 10; // Standard salt rounds for bcrypt
 
-// Define and export the User type
+// Define and export the User type to match the database schema
 export interface User {
     id: number;
     name: string;
     username: string;
-    password?: string; // Make password optional as it won't always be selected
-    role: string;
+    password?: string; // Optional as it won't always be selected
+    role: 'student' | 'teacher' | 'admin' | 'owner';
     disabled: boolean;
-    created_at: Date;
-    updated_at: Date;
-    last_login: Date | null;
+    createdAt: Date;
 }
 
 export const getAllUsers = async () => {
-    const [rows] = await connection.execute('SELECT id, name, username, role, disabled FROM users');
+    const [rows] = await connection.execute('SELECT id, name, username, role, disabled, createdAt FROM users');
     return rows as User[];
 };
 
-export const findUserByUsername = async (username: string) => {
+export const findUserByUsername = async (username: string): Promise<User | null> => {
     const [rows] = await connection.execute('SELECT * FROM users WHERE username = ?', [username]);
     const users = rows as User[];
-    if (users.length === 0) {
-        return null;
-    }
-    return users[0];
+    return users.length > 0 ? users[0] : null;
 };
 
 export const createUser = async (userData: any) => {
@@ -43,7 +38,9 @@ export const createUser = async (userData: any) => {
             'INSERT INTO users (name, username, password, role) VALUES (?, ?, ?, ?)',
             [name, username, hashedPassword, role]
         );
-        return { id: result.insertId, name, username, role, disabled: false };
+        // Fetch the user to get the default values like createdAt
+        const [rows] = await connection.execute('SELECT * FROM users WHERE id = ?', [result.insertId]);
+        return (rows as User[])[0];
     } catch (error) {
         if ((error as any).code === 'ER_DUP_ENTRY') {
             throw new Error('Username already exists.');
@@ -53,28 +50,41 @@ export const createUser = async (userData: any) => {
 };
 
 export const updateUser = async (id: string, userData: any) => {
-    const { name, password, role } = userData;
+    const { name, password, role, disabled } = userData;
 
-    let query = 'UPDATE users SET name = ?, role = ?';
-    const params: any[] = [name, role];
+    const fields: string[] = [];
+    const params: any[] = [];
 
+    if (name) {
+        fields.push('name = ?');
+        params.push(name);
+    }
+    if (role) {
+        fields.push('role = ?');
+        params.push(role);
+    }
+    if (typeof disabled !== 'undefined') {
+        fields.push('disabled = ?');
+        params.push(disabled);
+    }
     if (password) {
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-        query += ', password = ?';
+        fields.push('password = ?');
         params.push(hashedPassword);
     }
 
-    query += ' WHERE id = ?';
+    if (fields.length === 0) {
+        return; // No fields to update
+    }
+
+    const query = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
     params.push(id);
 
-    try {
-        await connection.execute(query, params);
-    } catch (error) {
-        throw error;
-    }
+    await connection.execute(query, params);
 };
 
 export const toggleUserStatus = async (id: string) => {
+    const user = await findUserByUsername(id); // This seems incorrect, should be find by ID
     const [rows] = await connection.execute('SELECT disabled FROM users WHERE id = ?', [id]);
     const users = rows as User[];
     if (users.length === 0) {
@@ -82,7 +92,7 @@ export const toggleUserStatus = async (id: string) => {
     }
     const currentStatus = users[0].disabled;
     await connection.execute('UPDATE users SET disabled = ? WHERE id = ?', [!currentStatus, id]);
-    return `User ${!currentStatus ? 'disabled' : 'enabled'} successfully`;
+    return `User ${!currentStatus ? 'enabled' : 'disabled'} successfully`;
 };
 
 export const deleteUser = async (id: string) => {

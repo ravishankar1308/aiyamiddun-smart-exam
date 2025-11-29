@@ -9,9 +9,7 @@ declare global {
         username: string;
         role: "student" | "teacher" | "admin" | "owner";
         disabled: boolean;
-        created_at: Date;
-        updated_at: Date;
-        last_login: Date | null;
+        createdAt: Date;
       };
     }
   }
