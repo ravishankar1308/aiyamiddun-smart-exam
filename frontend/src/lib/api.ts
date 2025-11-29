@@ -158,7 +158,10 @@ export const apiRegister = (userData: Partial<UserProfile>) => fetchApi<LoginRes
 export const apiFetchCurrentUser = () => fetchApi<{ user: UserProfile }>('/auth/me');
 
 // Users
-export const apiGetAllUsers = () => fetchApi<{ users: UserProfile[] }>('/users');
+export const apiGetUsers = async (): Promise<UserProfile[]> => {
+    const data = await fetchApi<{ users: UserProfile[] }>('/users');
+    return data.users;
+};
 export const apiCreateUser = (userData: Partial<UserProfile>) => fetchApi<UserProfile>('/users', { method: 'POST', body: JSON.stringify(userData) });
 export const apiUpdateUser = (id: string | number, userData: Partial<UserProfile>) => fetchApi<UserProfile>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) });
 export const apiDeleteUser = (id: string | number) => fetchApi<DeletionResponse>(`/users/${id}`, { method: 'DELETE' });
