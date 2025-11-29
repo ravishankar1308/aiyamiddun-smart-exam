@@ -125,6 +125,17 @@ export interface Exam {
     question_count?: number;
 }
 
+export interface Result {
+    id: number;
+    exam_id: number;
+    user_id: number;
+    score: number;
+    answers: any;
+    submitted_at: string;
+    exam_title?: string;
+    user_name?: string;
+}
+
 export interface LoginResponse {
     token: string;
     user: UserProfile;
@@ -178,3 +189,7 @@ export const apiGetExam = (id: string | number) => fetchApi<Exam>(`/exams/${id}`
 export const apiCreateExam = (examData: Partial<Exam>) => fetchApi<Exam>('/exams', { method: 'POST', body: JSON.stringify(examData) });
 export const apiUpdateExam = (id: string | number, examData: Partial<Exam>) => fetchApi<Exam>(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(examData) });
 export const apiDeleteExam = (id: string | number) => fetchApi<DeletionResponse>(`/exams/${id}`, { method: 'DELETE' });
+
+// Results
+export const apiGetResults = () => fetchApi<Result[]>('/results');
+export const apiGetResult = (id: string | number) => fetchApi<Result>(`/results/${id}`);
