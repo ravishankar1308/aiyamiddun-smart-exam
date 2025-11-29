@@ -24,7 +24,7 @@ describe('AI Service', () => {
 
   describe('generateQuestions', () => {
     it('should generate questions successfully and format them correctly', async () => {
-      const mockApiResponse = '```json\n[\n  {\n    "text": "What is the capital of France?",\n    "options": ["Berlin", "Madrid", "Paris", "Rome"],\n    "answer": "Paris",\n    "subject": "Geography",\n    "classLevel": "Grade 5",\n    "difficulty": "Easy",\n    "category": "MCQ"\n  }\n]\n```';
+      const mockApiResponse = '```json\n[\n  {\n    "text": "What is the capital of France?",\n    "options": ["Berlin", "Madrid", "Paris", "Rome"],\n    "answer": "Paris",\n    "subject": "Mathematics",\n    "classLevel": "Grade 10",\n    "difficulty": "Easy",\n    "category": "MCQ"\n  }\n]\n```';
 
       mockGenerateContent.mockResolvedValue({
         response: {
@@ -39,8 +39,8 @@ describe('AI Service', () => {
         text: 'What is the capital of France?',
         options: ['Berlin', 'Madrid', 'Paris', 'Rome'],
         answer: 'Paris',
-        subject: 'Geography',
-        classLevel: 'Grade 5',
+        subject: 'Mathematics',
+        classLevel: 'Grade 10',
         difficulty: 'Easy',
         category: 'MCQ',
         status: 'pending',

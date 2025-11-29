@@ -35,8 +35,8 @@ describe('User Service', () => {
     describe('getAllUsers', () => {
         it('should return all users from the database', async () => {
             const mockUsers: User[] = [
-                { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false },
-                { id: 2, name: 'User', username: 'user', role: 'user', disabled: false },
+                { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false, email: 'admin@example.com', created_at: new Date(), updated_at: new Date(), last_login: null },
+                { id: 2, name: 'User', username: 'user', role: 'user', disabled: false, email: 'user@example.com', created_at: new Date(), updated_at: new Date(), last_login: null },
             ];
             mockDbExecute.mockResolvedValue([mockUsers]);
 
@@ -49,7 +49,7 @@ describe('User Service', () => {
 
     describe('findUserByUsername', () => {
         it('should return a user object if found', async () => {
-            const mockUser: User = { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false };
+            const mockUser: User = { id: 1, name: 'Admin', username: 'admin', role: 'admin', disabled: false, email: 'admin@example.com', created_at: new Date(), updated_at: new Date(), last_login: null };
             mockDbExecute.mockResolvedValue([[mockUser]]);
 
             const result = await findUserByUsername('admin');
