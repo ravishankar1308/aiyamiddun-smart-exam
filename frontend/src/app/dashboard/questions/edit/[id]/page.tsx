@@ -42,6 +42,24 @@ export default function EditQuestionPage() {
   const { id } = params;
 
   useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        setLoading(true);
+        const [grades, subjects, sections, questionTypes] = await Promise.all([
+          apiGetMetadata('grades'),
+          apiGetMetadata('subjects'),
+          apiGetMetadata('sections'),
+          apiGetMetadata('questionTypes'),
+        ]);
+        setMetadata({ grades, subjects, sections, questionTypes });
+      } catch (err) {
+        setError("Failed to load metadata.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const fetchQuestionAndMeta = async () => {
       try {
         setLoading(true);
@@ -62,8 +80,10 @@ export default function EditQuestionPage() {
       }
     };
 
-    if (id) {
-        fetchQuestionAndMeta();
+    if (id === 'new') {
+      fetchMetadata();
+    } else if (id) {
+      fetchQuestionAndMeta();
     }
   }, [id]);
 
