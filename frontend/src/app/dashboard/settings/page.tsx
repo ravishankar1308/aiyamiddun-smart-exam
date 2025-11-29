@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Settings, List, Filter, Plus, Edit2, Eye, EyeOff, X, Check } from 'lucide-react';
-import { apiGetMetadata, apiUpdateMetadata } from '@/lib/api';
+import { apiGetAllMetadata, apiUpdateMetadata } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 // --- Helper Components for Settings ---
@@ -50,6 +50,7 @@ export default function SettingsPage() {
     subjects: [],
     sections: [],
     questionTypes: [],
+    difficulties: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,14 +64,9 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const [grades, subjects, sections, questionTypes] = await Promise.all([
-        apiGetMetadata('grades', token),
-        apiGetMetadata('subjects', token),
-        apiGetMetadata('sections', token),
-        apiGetMetadata('questionTypes', token),
-      ]);
-      setMetadata({ grades, subjects, sections, questionTypes });
-    } catch (err: any) {
+      const allMetadata = await apiGetAllMetadata();
+      setMetadata(allMetadata);
+    } catch (err) {
       setError(err.message || 'Failed to load settings');
     } finally {
       setLoading(false);
@@ -88,24 +84,11 @@ export default function SettingsPage() {
     }
 
     try {
-        let currentList = [...(metadata[collectionName] || [])];
-
-        if (action === 'add') {
-            const newItem = { id: Date.now().toString(), active: true, ...data };
-            currentList.push(newItem);
-        } else if (action === 'remove') {
-            currentList = currentList.filter(item => item.id !== itemId);
-        } else if (action === 'edit') {
-            currentList = currentList.map(item => item.id === itemId ? { ...item, name: data } : item);
-        } else if (action === 'toggle') {
-            currentList = currentList.map(item => item.id === itemId ? { ...item, active: !item.active } : item);
-        }
-
-        await apiUpdateMetadata(collectionName, currentList, token);
+        await apiUpdateMetadata(collectionName, { action, data, itemId });
         // Refresh local state
         fetchMetadata();
 
-    } catch (err: any) {
+    } catch (err) {
         setError(err.message || `Failed to update ${collectionName}`);
     }
 };
@@ -123,7 +106,7 @@ export default function SettingsPage() {
       </header>
       <div className="grid md:grid-cols-2 gap-6" style={{height: '700px'}}>
         <SimpleMetadataEditor 
-            title="Classes" 
+            title="Grades" 
             items={metadata.grades} 
             onAdd={d => handleUpdateMetadata('grades', 'add', d)} 
             onEdit={(id, v) => handleUpdateMetadata('grades', 'edit', v, id)} 

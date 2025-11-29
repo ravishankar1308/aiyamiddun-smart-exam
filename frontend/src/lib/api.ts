@@ -155,6 +155,8 @@ export const apiToggleUserDisable = (id: string | number) => fetchApi<SuccessMes
 
 // Metadata
 export const apiGetAllMetadata = () => fetchApi<AllMetadata>('/metadata/all');
+export const apiUpdateMetadata = (type: string, data: any) => fetchApi<any>(`/metadata/${type}`, { method: 'POST', body: JSON.stringify(data) });
+
 
 // Questions
 export const apiGetAllQuestions = (filters: Record<string, string> = {}) => {
