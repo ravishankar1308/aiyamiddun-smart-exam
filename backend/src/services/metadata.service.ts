@@ -12,14 +12,12 @@ const query = async (sql: string, params: any[] = []) => {
 };
 
 export const getAllMetadata = async () => {
-    const [grades, subjects, sections, questionTypes, difficulties, roles, questionStatuses] = await Promise.all([
+    const [grades, subjects, sections, questionTypes, difficulties] = await Promise.all([
         query('SELECT * FROM grades'),
         query('SELECT * FROM subjects'),
         query('SELECT * FROM sections'),
         query('SELECT * FROM question_types'),
         query('SELECT * FROM difficulties'),
-        query('SELECT * FROM roles'),
-        query('SELECT * FROM question_statuses'),
     ]);
 
     return {
@@ -28,21 +26,16 @@ export const getAllMetadata = async () => {
         sections,
         questionTypes,
         difficulties,
-        roles,
-        questionStatuses
     };
 };
 
 export const getMetadata = async (key: string) => {
-    // A simple mapping from a URL-friendly key to a table name.
     const keyToTableMap: Record<string, string> = {
         grades: 'grades',
         subjects: 'subjects',
         sections: 'sections',
         questionTypes: 'question_types',
         difficulties: 'difficulties',
-        roles: 'roles',
-        questionStatuses: 'question_statuses'
     };
 
     const tableName = keyToTableMap[key];
@@ -54,20 +47,10 @@ export const getMetadata = async (key: string) => {
     return await query(`SELECT * FROM ${tableName}`);
 };
 
-// This function now assumes you're updating a specific table, not a JSON blob.
-// This is a simplified example. A real implementation would be more complex.
 export const updateMetadata = async (key: string, value: any) => {
-    const tableName = key.endsWith('s') ? key.slice(0, -1) : key;
-    const table = `${tableName}s`;
-    // This is highly simplified. A real-world scenario would need more robust logic.
-    // For example, this doesn't handle creating *new* metadata items, just updating existing ones.
-    // It also assumes 'value' is an object with an 'id' and other fields to update.
-    if (value && value.id) {
-        const { id, ...fields } = value;
-        const setClause = Object.keys(fields).map(field => `${field} = ?`).join(', ');
-        const params = [...Object.values(fields), id];
-        await query(`UPDATE ${table} SET ${setClause} WHERE id = ?`, params);
-    }
-
-    return getMetadata(key);
+    // This is a placeholder. A real implementation would require a more robust
+    // and secure way to handle updates to these tables.
+    console.warn('Metadata update functionality is currently disabled.');
+    return { key, value };
 };
+
