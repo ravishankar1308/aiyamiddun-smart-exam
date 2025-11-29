@@ -41,7 +41,7 @@ export const updateMetadata = async (req: Request, res: Response) => {
     try {
         const updatedMetadata = await metadataService.updateMetadata(key, value);
         // The frontend API client also expects the updated data to be wrapped in a 'value' property.
-        res.json({ value: updatedMetadata.value });
+        res.json({ value: updatedMetadata });
     } catch (error) {
         console.error(`Error updating metadata for key '${key}':`, error);
         res.status(500).json({ error: 'Internal server error' });
