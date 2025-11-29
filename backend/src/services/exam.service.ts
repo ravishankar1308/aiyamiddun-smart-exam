@@ -1,4 +1,4 @@
-import { connection } from '../index';
+import { connection } from '../database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 
 interface AuthenticatedUser {
@@ -53,8 +53,7 @@ export const createExam = async (examConfig: any, user: AuthenticatedUser) => {
         throw new Error('Missing required exam configuration fields.');
     }
 
-    const trx = await connection.getConnection();
-    await trx.beginTransaction();
+    await connection.beginTransaction();
 
     try {
         const snapshotQuestions: any[] = [];
@@ -70,17 +69,17 @@ export const createExam = async (examConfig: any, user: AuthenticatedUser) => {
                 LIMIT ?
             `;
             
-            const [questions] = await trx.execute<RowDataPacket[]>(query, [subject_id, grade_id, topic, question_type, count]);
+            const [questions] = await connection.execute<RowDataPacket[]>(query, [subject_id, grade_id, topic, question_type, count]);
             
             if (questions.length < count) {
-                await trx.rollback();
+                await connection.rollback();
                 throw new Error(`Not enough approved questions found for topic '${topic}' and type '${question_type}'. Found ${questions.length}, needed ${count}.`);
             }
             snapshotQuestions.push(...questions);
         }
 
         if (snapshotQuestions.length === 0) {
-            await trx.rollback();
+            await connection.rollback();
             throw new Error('No questions could be found for the specified criteria. The exam cannot be created.');
         }
 
@@ -90,19 +89,17 @@ export const createExam = async (examConfig: any, user: AuthenticatedUser) => {
             INSERT INTO exams (title, description, subject_id, grade_id, duration_minutes, start_time, end_time, questions_snapshot, created_by)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        const [result] = await trx.execute<ResultSetHeader>(insertQuery, [
+        const [result] = await connection.execute<ResultSetHeader>(insertQuery, [
             title, description, subject_id, grade_id, duration_minutes, start_time || null, end_time || null, questionsSnapshot, user.id
         ]);
         
-        await trx.commit();
+        await connection.commit();
         return { id: result.insertId, ...examConfig };
 
     } catch (error) {
-        await trx.rollback();
+        await connection.rollback();
         console.error("Error creating exam:", error);
         throw error; // Re-throw the error to be handled by the controller
-    } finally {
-        trx.release();
     }
 };
 
@@ -177,7 +174,7 @@ export const getExamResults = async (examId: number) => {
 };
 
 export const getExamAnalytics = async (examId: number) => {
-    const results = await getExamResults(examId);
+    const results = await getExamResults(examId) as RowDataPacket[];
     if (!results || results.length === 0) {
         return {
             examId,
@@ -188,7 +185,7 @@ export const getExamAnalytics = async (examId: number) => {
     }
 
     const submissionCount = results.length;
-    const totalScore = results.reduce((acc, r) => acc + r.score, 0);
+    const totalScore = results.reduce((acc: any, r: any) => acc + r.score, 0);
     const averageScore = totalScore / submissionCount;
 
     // This is a simplified version; real analytics would be more complex

@@ -10,4 +10,6 @@ export type AuthenticatedUser = {
 // Extend the Express Request interface to include the authenticated user
 export interface AuthenticatedRequest extends Request {
     user?: AuthenticatedUser;
+    body: any;
+    params: any;
 }
